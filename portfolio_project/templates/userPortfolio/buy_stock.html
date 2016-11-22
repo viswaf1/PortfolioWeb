@@ -1,0 +1,48 @@
+{% extends 'userPortfolio/base.html' %}
+{% load render_table from django_tables2 %}
+
+
+
+{% block title %} {{ username_apos }} Portfolion Manager {% endblock %}
+
+{% block body_block %}
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script>
+$( function() {
+  $( "#datepicker" ).datepicker();
+} );
+</script>
+  <div class="content">
+    <h2> Enter Details Of stock to {% if type == "buy_stock" %} Buy {% else %} Sell {% endif %} </h2>
+    {% if post_error %}
+    <p style="color:red;">Error: {{error_message}}</p>
+    {% endif %}
+    {% if post_success %}
+    <p style="color:blue;">{{post_message}}</p>
+    {% endif %}
+    <form class="pure-form pure-form-aligned" id="login_form" method="post" action="/userPortfolio/{% if type == "buy_stock" %}buy_stock{% else %}sell_stock{% endif %}/">
+            {% csrf_token %}
+          <fieldset>
+            <div class="pure-control-group">
+              <label for="stockName">Stock Name</label> <input type="text" name="stockName" value="" size="50" />
+            </div>
+            <div class="pure-control-group">
+              <label for="buyPrice">{% if type == "buy_stock" %} Buy {% else %} Sell {% endif %} Price</label> <input type="text" name="stockPrice" value="" size="50" />
+            </div>
+            <div class="pure-control-group">
+              <label for="numberOfStocksBought">Number of Stocks</label> <input type="text" name="numberOfStocks" value="" size="50" />
+            </div>
+            <div class="pure-control-group">
+              <label for="buyDate">Date</label> <input type="text" name="transactionDate" id="datepicker" value="" size="50" />
+            </div>
+
+              <input type="submit" class="pure-button pure-button-primary" value="submit" />
+
+          </fieldset>
+        </form>
+
+  </div>
+
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'userPortfolio/base.html' %}
+{% load render_table from django_tables2 %}
+
+
+
+{% block title %} {{ username_apos }} Portfolion Manager {% endblock %}
+
+{% block body_block %}
+<script>
+function tablerow_onclick(elem) {
+            //  alert("Alert: alert "+ elem.getAttribute("stock_name"));
+            window.location.href = ('/userPortfolio/transactions/?stock='+elem.getAttribute("stock_name"));
+
+}
+</script>
+<style>
+#portfolio_table tr:hover {
+  cursor: pointer;
+}
+
+#portfolio_table tr:hover {
+  background-color: #aaa;
+}
+</style>
+  <div class="content">
+    <h2> Your Portfolio </h2>
+        {% autoescape off %}{{ portfolio_table }}{% endautoescape %}
+  </div>
+
+{% endblock %}

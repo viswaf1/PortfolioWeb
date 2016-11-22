@@ -1,0 +1,15 @@
+{% extends 'userPortfolio/base.html' %}
+
+{% block title %} {{ username_apos }} Portfolion Manager {% endblock %}
+
+  {% block body_block %}
+  <div class="content">
+    <h2> Login </h2>
+        <form class="pure-form pure-form-stacked" id="login_form" method="post" action="/userPortfolio/login/">
+            {% csrf_token %}
+            <label for="email">Username</label> <input type="text" name="username" value="" size="50" />
+            <label for="password">Password</label> <input type="password" name="password" value="" size="50" />
+            <input type="submit" class="pure-button pure-button-primary" value="submit" />
+        </form>
+  </div>
+{% endblock %}
