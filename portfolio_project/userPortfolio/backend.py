@@ -16,6 +16,30 @@ from bokeh.embed import components
 from math import pi
 from talib.abstract import *
 
+class Singleton:
+
+    def __init__(self, decorated):
+        self._decorated = decorated
+
+    def Instance(self):
+        """
+        Returns the singleton instance. Upon its first call, it creates a
+        new instance of the decorated class and calls its `__init__` method.
+        On all subsequent calls, the already created instance is returned.
+
+        """
+        try:
+            return self._instance
+        except AttributeError:
+            self._instance = self._decorated()
+            return self._instance
+
+    def __call__(self):
+        raise TypeError('Singletons must be accessed through `Instance()`.')
+
+    def __instancecheck__(self, inst):
+        return isinstance(inst, self._decorated)
+
 
 def buy_stock(user, stockName, buyPrice, numberOfStocks, buyDate):
     #check if stockName is present in portfolio_table
@@ -71,6 +95,7 @@ def get_quote_today(symbol):
             return row
 
 def append_today_quote(dataFrame, endDate, stockName):
+    print("Appending todays quote")
     frameEndDate = dataFrame.index.max().to_pydatetime().date()
     if(frameEndDate < endDate):
         df = pandas.DataFrame(index=pandas.DatetimeIndex(start=endDate, end=endDate, freq="D"),
@@ -79,65 +104,105 @@ def append_today_quote(dataFrame, endDate, stockName):
         row = get_quote_today(stockName)
         df.ix[0] = map(float, row[2:])
         dataFrame = dataFrame.append(df)
+    return dataFrame
 
-def get_historical_stock_data(stockName):
+@Singleton
+class StockData:
+
+    def __init__(self, offline=False):
+        self.data_ditc = {}
+        self.offline = offline
+        self.append_flag = False
+        self.append_stock_data = []
+        self.append_stock_col_name = []
+        self.append_stock_suffix = []
+
+    def get_historical_stock_data(self, stockName):
+        if stockName in self.data_ditc:
+            return self.data_ditc[stockName]
+        else:
+            data = get_historical_stock_data(stockName, offline=self.offline)
+            for i in range(len(self.append_stock_col_name)):
+            #if self.append_flag:
+                data = pandas.merge(data, getattr(self.append_stock_data[i], self.append_stock_col_name[i]).to_frame(),
+                suffixes=('', self.append_stock_suffix[i]), left_index=True, right_index=True)
+            self.data_ditc[stockName] = data
+            return data
+
+    def append_stock_column(self, stockName, col_name, col_name_suffix):
+        self.append_stock_data.append(get_historical_stock_data(stockName, offline=self.offline))
+        self.append_stock_col_name.append(col_name)
+        self.append_stock_suffix.append(col_name_suffix)
+        self.append_flag = True
+
+    def flush(self):
+        self.data_ditc = {}
+
+
+def get_historical_stock_data(stockName, offline = True):
     stockFile = stockName+'_historical.csv'
     stockFileDir = settings.BASE_DIR+'/stock_data/'
     stockFilePath = stockFileDir+stockFile
 
+    if not offline:
+        currentTimeUtc = datetime.datetime.now(timezone('UTC'))
+        nycTime = currentTimeUtc.astimezone(timezone('US/Eastern'))
+        nycCloseTime = nycTime.replace(hour=16, minute=0, second=0, microsecond=0)
+        nycCloseTimeUtc = nycCloseTime.astimezone(timezone('UTC'))
 
-    currentTimeUtc = datetime.datetime.now(timezone('UTC'))
-    nycTime = currentTimeUtc.astimezone(timezone('US/Eastern'))
-    nycCloseTime = nycTime.replace(hour=16, minute=0, second=0, microsecond=0)
-    nycCloseTimeUtc = nycCloseTime.astimezone(timezone('UTC'))
+        queryStartDate = '1/1/1990'
 
-    queryStartDate = '1/1/1990'
+        if(currentTimeUtc > nycCloseTimeUtc):
+            queryEndDate = nycTime.date()
+        else:
+            nycTimeYesterday = nycTime
+            nycTimeYesterday = nycTimeYesterday - datetime.timedelta(days=1)
+            queryEndDate = nycTimeYesterday.date()
 
-    if(currentTimeUtc > nycCloseTimeUtc):
-        queryEndDate = nycTime.date()
+        if queryEndDate.isoweekday() > 5:
+            diff = queryEndDate.isoweekday() - 5
+            temp_date_time = datetime.datetime.combine(queryEndDate, datetime.time.min)
+            queryEndDate = (temp_date_time - datetime.timedelta(days=diff)).date()
+
+        queryEndDateStr = queryEndDate.strftime("%m/%d/%Y")
     else:
-        nycTimeYesterday = nycTime
-        nycTimeYesterday = nycTimeYesterday - datetime.timedelta(days=1)
-        queryEndDate = nycTimeYesterday.date()
-
-    if queryEndDate.isoweekday() > 5:
-        diff = queryEndDate.isoweekday() - 5
-        temp_date_time = datetime.datetime.combine(queryEndDate, datetime.time.min)
-        queryEndDate = (temp_date_time - datetime.timedelta(days=diff)).date()
-
-    queryEndDateStr = queryEndDate.strftime("%m/%d/%Y")
-
+        queryEndDate = datetime.datetime.now(timezone('UTC')).date()
     #queryEndDate = datetime.date.today().strftime("%m/%d/%Y")
 
     if not os.path.exists(stockFileDir):
         os.makedirs(stockFileDir)
     #Check if stock file exists
     if not os.path.exists(stockFilePath):
-        #try:
-        stockFrame = data.DataReader(stockName, 'yahoo', queryStartDate, queryEndDateStr)
-        stockFrame.columns = map(str.lower, stockFrame.columns)
+        if offline:
+            stockFrame = pandas.DataFrame()
+            return stockFrame
+        else:
+            #try:
+            stockFrame = data.DataReader(stockName, 'yahoo', queryStartDate, queryEndDateStr)
+            stockFrame.columns = map(str.lower, stockFrame.columns)
 
-        append_today_quote(stockFrame, queryEndDate, stockName)
+            append_today_quote(stockFrame, queryEndDate, stockName)
 
-        stockFrame.to_csv(stockFilePath, sep=',')
-        # except:
-        #     stockFrame = pandas.DataFrame()
+            stockFrame.to_csv(stockFilePath, sep=',')
+            # except:
+            #     stockFrame = pandas.DataFrame()
 
     else:
         stockFrame = pandas.read_csv(stockFilePath, delimiter = ',', index_col=0, parse_dates=True)
         frameEndDate = stockFrame.index.max().to_pydatetime().date()
         currentDate = datetime.date.today()
-        if(frameEndDate < queryEndDate):
-            print frameEndDate
-            print currentDate
-            print "Not up to date.... updating"
+        if(frameEndDate < queryEndDate) and not offline:
+            print(frameEndDate)
+            print(queryEndDate)
+            print("Not up to date.... updating")
             try:
                 tempStockFrame = data.DataReader(stockName, 'yahoo', frameEndDate.strftime("%m/%d/%Y"))
                 tempStockFrame.columns = map(str.lower, tempStockFrame.columns)
                 if not frameEndDate == tempStockFrame.index.max().to_pydatetime().date():
                     stockFrame = pandas.concat([stockFrame, tempStockFrame])
-                    append_today_quote(stockFrame, queryEndDate, stockName)
-                    stockFrame.to_csv(stockFilePath, sep=',')
+                if stockFrame.index.max().to_pydatetime().date() < queryEndDate:
+                    stockFrame = append_today_quote(stockFrame, queryEndDate, stockName)
+                stockFrame.to_csv(stockFilePath, sep=',')
             except:
                 stockFrame = pandas.DataFrame()
 
@@ -149,7 +214,7 @@ def render_stock_data(stockName):
     fancyBlue = '#1357C4'
     fancyGreen = '#7AF442'
     stockFrame = get_historical_stock_data(stockName)
-    stock_data = stockFrame.tail(150)
+    stock_data = stockFrame.tail(365)
     mids = (stock_data.open + stock_data.close)/2
     spans = abs(stock_data.close-stock_data.open)
 
@@ -181,7 +246,8 @@ def render_stock_data(stockName):
     volume_plot.xaxis.visible = False
 
     sar_data = SAR(stock_data)
-    print sar_data
+    ema_data = pandas.ewma(stock_data['close'], span=5)
+    print(sar_data)
     mcl1 = candles.line(sar_data.index, sar_data, line_width=1,
     line_color=fancyRed)
 
@@ -208,8 +274,8 @@ def render_stock_data(stockName):
     plusdm_data = PLUS_DM(stock_data, timeperiod=14)
     minusdm_data = MINUS_DM(stock_data, timeperiod=14)
     adx_range = calc_range((adx_data, plusdm_data, minusdm_data), 60)
-    print "ADX Range is =============="
-    print adx_range
+    print("ADX Range is ==============")
+    print(adx_range)
 
     adx_plot = figure(x_axis_type='datetime', tools=TOOLS, plot_width=plotWidth,
     plot_height=smallplotHeight, x_range=candles.x_range, y_range=adx_range)
@@ -285,34 +351,34 @@ def import_stocklist_csv():
     with open(nasdaq_csv_path) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            print row['Symbol']
+            print(row['Symbol'])
             try:
                 AllStocks.objects.get_or_create(stockName = row['Symbol'], \
                 name = row['Name'], sector = row['Sector'], industry = row['Industry'], \
                 market = 'NASDAQ')
             except IntegrityError as e:
-                print "stock "+row['Symbol']+" Already Present"
+                print("stock "+row['Symbol']+" Already Present")
 
     with open(nyse_csv_path) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            print row['Symbol']
+            print(row['Symbol'])
             try:
                 AllStocks.objects.get_or_create(stockName = row['Symbol'], \
                 name = row['Name'], sector = row['Sector'], industry = row['Industry'], \
                 market = 'NYSE')
             except IntegrityError as e:
-                print "stock "+row['Symbol']+" Already Present"
+                print("stock "+row['Symbol']+" Already Present")
 
 def import_stocklist_snp():
     snp_csv_path = '/home/teja/snp500.csv'
     with open(snp_csv_path) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            print row['Symbol']
+            print(row['Symbol'])
             try:
                 SNP500Model.objects.get_or_create(stockName = row['Symbol'], \
                 name = row['Name'], sector = row['Sector'], industry = 'None', \
                 market = 'NASDAQ')
             except IntegrityError as e:
-                print "stock "+row['Symbol']+" Already Present"
+                print("stock "+row['Symbol']+" Already Present")

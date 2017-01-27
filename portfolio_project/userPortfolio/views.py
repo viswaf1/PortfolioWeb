@@ -5,7 +5,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from userPortfolio.models import UserTransactionsModel, UserPortfolioModel, AllStocksModel
 import userPortfolio.backend as backend
-import django_tables2 as tables
 import datetime
 
 

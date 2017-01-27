@@ -1,0 +1,66 @@
+comparision of training time vs accuracy (rdp features)
+training time   |   accuracy
+100   56.7741935484
+200   59.7701149425
+300   57.9545454545
+400   57.3863636364
+500   57.03125
+600   58.9147286822
+700   59.1478696742
+800   58.5956416465
+
+comparision of training time vs accuracy (technical indicator features)
+training time   |   accuracy
+100   59.706959707
+200   58.7837837838
+300   60.9120521173
+400   56.6455696203
+500   55.4896142433
+600   55.8659217877
+
+
+feature_matrix = np.column_stack((mom10, rsi16, cci12, percentd, beta, disparity10, index_disparity5, labels)) 61.4147909968
+feature_matrix = np.column_stack((rsi16, cci12, percentd, beta, disparity10, index_disparity5, labels)) 59.6401028278
+feature_matrix = np.column_stack((mom10, beta, disparity10, index_disparity5, labels))  60.04784689
+feature_matrix = np.column_stack((mom10, beta, percentd, disparity10, index_disparity5, labels))  60.125
+feature_matrix = np.column_stack((mom10, labels))   60.453808752
+feature_matrix = np.column_stack((beta, labels))    60.5386416862
+feature_matrix = np.column_stack((mom3, labels))    59.6091205212
+
+
+
+accuracy vs look_ahead (1-10)
+[47.928994082840234, 45.40059347181009, 55.192878338278931, 57.060518731988473, 59.770114942528735, 60.445682451253482, 51.841359773371103, 56.772334293948127, 51.603498542274053]
+percentage of positives correctly classified vs look_ahead (1-10)
+[65.587044534412954, 68.918918918918919, 66.906474820143885, 65.78073089700996, 68.874172185430467, 72.575250836120404, 68.029739776951672, 67.931034482758619, 64.130434782608702]
+
+percentage of positives correctly classified vs minimum stock price (10-200 , 20)
+[62.879697957782739, 64.596633778293679, 66.278769071631757, 66.593806921675778, 67.258156840297659, 66.469093988145644, 65.850515463917532, 67.553191489361708, 67.910447761194035, 68.307692307692307]
+
+
+
+
+c 10 : 57.5357535754
+c 100 : 57.6945244957
+c 1000 : 57.4915254237
+
+
+ado bad
+percentd good
+percentk bad
+beta good
+willr10 bad
+mom3 bad
+macdhist bad
+ultimate good
+natr bad
+obv bad
+adx good
+aroon bad
+
+57.9949769778
+
+
+1 56.99
+10 57.2153409939
+100 57.7302963112
