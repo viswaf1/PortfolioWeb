@@ -1,8 +1,9 @@
 import datetime
 import sys,os
-from userPortfolio.models import UserTransactionsModel, UserPortfolioModel, AllStocksModel, SNP500Model
+from userPortfolio.models import UserTransactionsModel, UserPortfolioModel, AllStocksModel, SNP500Model, UserProfile
 from django.db import IntegrityError
 from django.conf import settings
+from django.utils import timezone as djangotimezone
 import csv, hashlib
 from pandas_datareader import data
 import pandas, urllib2, csv
@@ -41,7 +42,7 @@ class Singleton:
         return isinstance(inst, self._decorated)
 
 
-def buy_stock(user, stockName, buyPrice, numberOfStocks, buyDate):
+def buy_stock(user, stockName, buyPrice, numberOfStocks, buyDate, stopLoss=-1, stopTarget=-1):
     #check if stockName is present in portfolio_table
     portQs = UserPortfolioModel.objects.filter(username = user, stockName = stockName)
     amount = buyPrice*numberOfStocks
@@ -49,27 +50,43 @@ def buy_stock(user, stockName, buyPrice, numberOfStocks, buyDate):
         portObj = portQs[0]
         portObj.moneyInvested = portObj.moneyInvested + amount
         portObj.numberOfStocks = portObj.numberOfStocks + numberOfStocks
+        portObj.stopLoss = stopLoss
+        portObj.stopTarget = stopTarget
         portObj.save()
         portId = portObj.portfolioId
     else:
         #generate uique portfolio id for this transactions
         portId = hashlib.md5(stockName+str(buyPrice)+buyDate.strftime("%B%d,%Y")).hexdigest()
         UserPortfolioModel.objects.create(username = user, portfolioId = portId, \
-        stockName = stockName, moneyInvested = amount, numberOfStocks = numberOfStocks)
+        stockName = stockName, moneyInvested = amount, numberOfStocks = numberOfStocks,
+        stopLoss = stopLoss, stopTarget=stopTarget, minStopLoss=buyPrice-(buyPrice*0.1))
 
     #Add transaction with portfolioId to transaction tables
     UserTransactionsModel.objects.create(username = user, portfolioId = portId, \
     stockName = stockName, buyDate = buyDate, buyPrice = buyPrice, \
     numberOfStocksBought = numberOfStocks)
 
+    userprofile = UserProfile.objects.get(user=user)
+    userprofile.moneyAvailable = userprofile.moneyAvailable-amount
+    userprofile.save()
+
     return 1
 
-def sell_stock(user, stockName, stockPrice, numOfStocks, transactionDate):
+def sell_stock(user, stockName, stockPrice, numOfStocks, transactionDate,
+        brokerage=0.0, tax_percent=0.0, reason = None):
     portQs = UserPortfolioModel.objects.filter(username = user, stockName = stockName)
-    amount = stockPrice*numOfStocks
-
     portObj = portQs[0]
-    newMoneyInvested = portObj.moneyInvested - amount
+    if numOfStocks < 0:
+        numOfStocks = portQs[0].numberOfStocks
+    amount = stockPrice*numOfStocks
+    returns = amount-((portObj.moneyInvested/portObj.numberOfStocks)*numOfStocks)
+
+    if returns > 0.0:
+        amount = amount - returns
+        returns = returns - (tax_percent/100)*returns
+        amount = amount + returns
+
+    newMoneyInvested = portObj.moneyInvested - (amount+brokerage)
     newNumberOfStocks = portObj.numberOfStocks - numOfStocks
     if newNumberOfStocks < 0:
         return 0
@@ -78,13 +95,25 @@ def sell_stock(user, stockName, stockPrice, numOfStocks, transactionDate):
     portObj.save()
     portId = portObj.portfolioId
 
+
     UserTransactionsModel.objects.create(username = user, portfolioId = portId, \
     stockName = stockName, sellDate = transactionDate, sellPrice = stockPrice, \
-    numberOfStocksSold = numOfStocks)
+    numberOfStocksSold = numOfStocks, returns=returns-brokerage, reason=reason)
+
+    userprofile = UserProfile.objects.get(user=user)
+    userprofile.moneyAvailable = userprofile.moneyAvailable+amount-brokerage
+    userprofile.save()
 
     if portObj.numberOfStocks == 0:
         portObj.delete()
     return 1
+
+def get_in_portfolio(user, stockName):
+    portQs = UserPortfolioModel.objects.filter(username = user, stockName = stockName)
+    if len(portQs) > 0:
+        return portQs[0]
+    else:
+        return False
 
 def get_quote_today(symbol):
     YAHOO_TODAY="http://download.finance.yahoo.com/d/quotes.csv?s=%s&f=sd1ohgl1vl1"
@@ -103,13 +132,16 @@ def append_today_quote(dataFrame, endDate, stockName):
                   dtype=float)
         row = get_quote_today(stockName)
         df.ix[0] = map(float, row[2:])
-        dataFrame = dataFrame.append(df)
+        newEndDate = df.index.max().to_pydatetime().date()
+        df.columns = map(str.lower, df.columns)
+        if(newEndDate > frameEndDate):
+            dataFrame = dataFrame.append(df)
     return dataFrame
 
 @Singleton
 class StockData:
 
-    def __init__(self, offline=False):
+    def __init__(self, offline=True):
         self.data_ditc = {}
         self.offline = offline
         self.append_flag = False
@@ -189,24 +221,49 @@ def get_historical_stock_data(stockName, offline = True):
 
     else:
         stockFrame = pandas.read_csv(stockFilePath, delimiter = ',', index_col=0, parse_dates=True)
-        frameEndDate = stockFrame.index.max().to_pydatetime().date()
+        temp_date_time = datetime.datetime.combine(stockFrame.index.max().to_pydatetime().date(), datetime.time.min)
+        frameEndDate = (temp_date_time + datetime.timedelta(days=1)).date()
+        #frameEndDate = stockFrame.index.max().to_pydatetime().date()
         currentDate = datetime.date.today()
         if(frameEndDate < queryEndDate) and not offline:
             print(frameEndDate)
             print(queryEndDate)
             print("Not up to date.... updating")
-            try:
+            #try:
+            if 1:
                 tempStockFrame = data.DataReader(stockName, 'yahoo', frameEndDate.strftime("%m/%d/%Y"))
                 tempStockFrame.columns = map(str.lower, tempStockFrame.columns)
-                if not frameEndDate == tempStockFrame.index.max().to_pydatetime().date():
+                import pdb; pdb.set_trace()
+                if not frameEndDate < tempStockFrame.index.max().to_pydatetime().date():
                     stockFrame = pandas.concat([stockFrame, tempStockFrame])
                 if stockFrame.index.max().to_pydatetime().date() < queryEndDate:
                     stockFrame = append_today_quote(stockFrame, queryEndDate, stockName)
                 stockFrame.to_csv(stockFilePath, sep=',')
-            except:
-                stockFrame = pandas.DataFrame()
+            #except:
+            #    print('get_historical_stock_data: 231')
+            #    stockFrame = pandas.DataFrame()
 
     return stockFrame
+
+
+def render_transaction_sales(user, initial =10000):
+    transactions = UserTransactionsModel.objects.filter(username=user).exclude(sellDate=None).order_by('sellDate')
+    running_sum = [initial]
+    for eachTrans in transactions:
+        current = running_sum[-1]+eachTrans.returns
+        running_sum.append(current)
+    dates = [x.sellDate.date() for x in transactions]
+    smallplotHeight = 600
+    plotWidth = 1000
+    fancyBlue = '#1357C4'
+    TOOLS = "pan,wheel_zoom"
+    trans_plot = figure(x_axis_type="datetime", tools=TOOLS, plot_width=plotWidth,
+    plot_height=smallplotHeight)
+    trans_plot_line = trans_plot.line(dates, running_sum, line_width=2,
+        line_color=fancyBlue)
+
+    script, div = components(trans_plot, CDN)
+    return (script, div)
 
 
 def render_stock_data(stockName):

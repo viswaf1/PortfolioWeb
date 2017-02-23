@@ -262,7 +262,7 @@ class SVMClassifier:
                 if len(stock_data) > start_ind:
                     stock_slice = stock_data[-start_ind:-end_ind]
                     if stock_slice.iloc[-1].close > self.min_price:
-                        period_stock_data.append((stockName, stock_slice, test_period+self.num_days+self.look_ahead, self.look_ahead))
+                        period_stock_data.append((stockName, stock_slice, test_period+self.num_days+self.look_ahead, self.look_ahead, offset, False))
 
             pool = multiprocessing.Pool(16)
             for eachStockData in period_stock_data:
@@ -286,6 +286,7 @@ class SVMClassifier:
             pool = multiprocessing.Pool(16)
             for eachTrainTest in period_train_test_data:
                 pool.apply_async(run_libSVMGPU, args=(eachTrainTest,), callback=self.svm_async_callback)
+                #pool.apply_async(run_cointoss, args=(eachTrainTest,), callback=self.svm_async_callback)
                 #ret = run_libSVMGPU(eachTrainTest)
             pool.close()
             pool.join()
@@ -407,7 +408,7 @@ def run_libSVMGPU((train, train_labels, test, test_labels, C, gamma, epsilon, st
         percent_covered = -1
     result = {'stockName':stockName, 'accuracy': total_accuracy,
     'positive_accuracy':positive_accuracy, 'percent_covered':percent_covered,
-    'prediction' : result_labels, 'training_loss' : train_accuracy[0]/100}
+    'prediction' : result_labels, 'training_accuracy' : train_accuracy[0]/100}
 
     return result
 
@@ -503,7 +504,7 @@ def run_SVC((train, train_labels, test, test_labels, C)):
     return result
 
 
-def run_cointoss((train, train_labels, test, test_labels, C)):
+def run_cointoss((train, train_labels, test, test_labels, C, gamma, epsilon, stockName)):
     iter_results = []
     for i in range(len(test_labels)):
         if random.randint(1,2) == 1:
@@ -528,20 +529,21 @@ def run_cointoss((train, train_labels, test, test_labels, C)):
     # else:
     #     return(-1)
 
-    if test_labels[0] > 0.1:
-        return(iter_outcome)
-    else:
-        return(-1)
+    result = {'stockName':stockName, 'accuracy': 0,
+    'positive_accuracy':iter_outcome, 'percent_covered':0,
+    'prediction' : [0], 'training_accuracy' : 0}
+
+    return result
 
 
 
-def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead)):
+def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead, offset, blind)):
     #import pdb; pdb.set_trace()
     # data = data[:-200]
     # snp_data = snp_data[:-200]
     # nasdaq_data = nasdaq_data[:-200]
     start_time = time.time()
-    offset = 40
+    # offset = 40
     slice_len = num_days+look_ahead+offset
     data = data.tail(slice_len)
     #nasdaq_data = nasdaq_data.tail(slice_len)
@@ -554,10 +556,7 @@ def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead)):
     low = data_frame['low'].values
     volume = data_frame['volume'].values
 
-    if data.shape[0] < slice_len:
-        return ''
-
-    try:
+    if 1:
         #Append required technical indicators to the data
         mom10 = talib.MOM(data, timeperiod=10)
         mom3 = talib.MOM(data, timeperiod=3)
@@ -569,7 +568,7 @@ def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead)):
 
         percentk, percentd = talib.STOCHF(high, low, data)
         slowpercentk, slowpercentd = talib.STOCH(high, low, data)
-        ado = talib.ADOSC(high, low, data, volume)
+        #ado = talib.ADOSC(high, low, data, volume)
         natr = talib.NATR(high, low, data)
         ultimate = talib.ULTOSC(high, low, data)
 
@@ -626,7 +625,7 @@ def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead)):
         percentk = percentk/abs(np.nanmean(percentk))
         percentd = percentd/abs(np.nanmean(percentd))
         slowpercentd = slowpercentd/abs(np.nanmean(slowpercentd))
-        ado = ado/abs(np.nanmean(ado))
+        #ado = ado/abs(np.nanmean(ado))
         disparity5 = disparity5/abs(np.nanmean(disparity5))
         disparity10 = disparity10/abs(np.nanmean(disparity10))
         ultimate = ultimate/abs(np.nanmean(ultimate))
@@ -651,7 +650,6 @@ def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead)):
 
         labels = get_label(data, look_ahead)
 
-
         #feature_matrix = np.column_stack((mom10, mom3, rsi16, cci12, macdhist, ado, willr10, disparity5, disparity10, beta, index_macd_hist, labels))
         #*feature_matrix = np.column_stack((mom10, cci12, percentd, beta, disparity10, index_disparity5, ultimate, adx, labels))
         feature_matrix = np.column_stack((mom10, cci12, percentd, beta, disparity10, index_disparity5, ultimate, adx, labels))
@@ -662,85 +660,38 @@ def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead)):
 
         #feature_matrix = np.column_stack((mom10, mom3, rsi16, cci12, macdhist, percentk, percentd, ado, willr10, disparity5, disparity10, labels))
         #print("--- %s seconds ---" % (time.time() - start_time))
-        feature_matrix = feature_matrix[offset:-(look_ahead)]
-    except Exception as e:
-        print str(e)
-        feature_matrix = np.array([])
+        if not blind:
+            feature_matrix = feature_matrix[offset:-(look_ahead)]
+        else:
+            feature_matrix = feature_matrix[offset:]
+    # except Exception as e:
+    #     print ("portsvm:get_feature_label_for_stocks :" + str(e))
+    #     feature_matrix = np.array([])
     return (stock_name, feature_matrix)
 
 
 
-def get_feature_label_for_stocks_rdp((stock_name, data, num_days, look_ahead)):
-    #import pdb; pdb.set_trace()
-    # data = data[:-200]
-    # snp_data = snp_data[:-200]
-    # nasdaq_data = nasdaq_data[:-200]
-    start_time = time.time()
-    offset = 40
-    slice_len = num_days+look_ahead+offset
-    data = data.tail(slice_len)
-    #nasdaq_data = nasdaq_data.tail(slice_len)
-    #data_frame = pandas.merge(data, snp_data.close.to_frame(), suffixes=('', '_snp'), left_index=True, right_index=True)
-    #data_frame = pandas.merge(data, nasdaq_data.close.to_frame(), suffixes=('', '_nasdaq'), left_index=True, right_index=True)
-    data_frame = data
-    index_data = data_frame['close_index'].values
-    data = data_frame['close'].values
-    high = data_frame['high'].values
-    low = data_frame['low'].values
-    volume = data_frame['volume'].values
 
-    if data.shape[0] < slice_len:
-        return ''
+# def get_label(data, look_ahead):
+#     #data - numpy array
+#     labels = np.array([])
+#     data_len = data.size
+#     for i in range(data_len):
+#         if i+look_ahead >= data_len:
+#             labels = np.append(labels, np.nan)
+#             continue
+#         sma = 0
+#         for s in range(1,look_ahead+1):
+#             sma = sma + data[i+s]
+#         sma = sma/look_ahead
+#         if sma > data[i]:
+#             labels = np.append(labels, 1)
+#         else:
+#             labels = np.append(labels, -1)
+#
+#     return labels
 
-    np.seterr(invalid='ignore')
-    try:
-        ema15 = talib.EMA(data, timeperiod=15)
-        data_5 = shift(data, 5, cval=np.NaN)
-        data_10 = shift(data, 10, cval=np.NaN)
-        data_15 = shift(data, 15, cval=np.NaN)
-        data_20 = shift(data, 20, cval=np.NaN)
-
-        rdp5 = ((data-data_5)/(data_5))*100
-        rdp10 = ((data-data_10)/(data_10))*100
-        rdp15 = ((data-data_15)/(data_15))*100
-        rdp20 = ((data-data_20)/(data_20))*100
-
-        rdp5_std = np.nanstd(rdp5)
-        rdp5[rdp5 > 2*rdp5_std] = 2*rdp5_std
-        rdp5[rdp5 < -2*rdp5_std] = -2*rdp5_std
-
-        rdp10_std = np.nanstd(rdp10)
-        rdp10[rdp10 > 2*rdp10_std] = 2*rdp10_std
-        rdp10[rdp10 < -2*rdp10_std] = -2*rdp10_std
-
-        rdp15_std = np.nanstd(rdp15)
-        rdp15[rdp15 > 2*rdp15_std] = 2*rdp15_std
-        rdp15[rdp15 < -2*rdp15_std] = -2*rdp15_std
-
-        rdp20_std = np.nanstd(rdp20)
-        rdp20[rdp20 > 2*rdp20_std] = 2*rdp20_std
-        rdp20[rdp20 < -2*rdp20_std] = -2*rdp20_std
-
-        #Append required technical indicators to the data
-        ema15 = ema15/np.nanmax(np.abs(ema15))
-        rdp5 = rdp5/np.nanmax(np.abs(rdp5))
-        rdp10 = rdp10/np.nanmax(np.abs(rdp10))
-        rdp15 = rdp15/np.nanmax(np.abs(rdp15))
-        rdp20 = rdp20/np.nanmax(np.abs(rdp20))
-        labels = get_label(data, look_ahead)
-
-        feature_matrix = np.column_stack((ema15, rdp5, rdp10, rdp15, rdp20, labels))
-
-
-        #feature_matrix = np.column_stack((mom10, mom3, rsi16, cci12, macdhist, percentk, percentd, ado, willr10, disparity5, disparity10, labels))
-        #print("--- %s seconds ---" % (time.time() - start_time))
-        feature_matrix = feature_matrix[offset:-(look_ahead)]
-    except Exception as e:
-        print str(e)
-        feature_matrix = np.array([])
-    return (stock_name, feature_matrix)
-
-
+#one if price increases by 5% in look ahead
 def get_label(data, look_ahead):
     #data - numpy array
     labels = np.array([])
@@ -750,47 +701,18 @@ def get_label(data, look_ahead):
             labels = np.append(labels, np.nan)
             continue
         sma = 0
-        for s in range(1,look_ahead+1):
-            sma = sma + data[i+s]
-        sma = sma/look_ahead
-        if sma > data[i]:
-            labels = np.append(labels, 1)
-        else:
-            labels = np.append(labels, -1)
-
-    return labels
-
-def get_label2(data, look_ahead):
-    #data - numpy array
-    cost = 10
-    tax = 30
-    money = 1000
-    labels = np.array([])
-    data_len = data.size
-    for i in range(data_len):
-        if i+look_ahead >= data_len:
-            labels = np.append(labels, np.nan)
-            continue
-        buyPrice = data[i]
-        ad = 0
         found = False
-        num_stocks = money/buyPrice
-        for x in range(look_ahead):
-            ad = ad + 1
-            current_data = data[i+ad]
-            currentPrice = current_data
-            if currentPrice > buyPrice:
-                diff = (currentPrice-buyPrice)*num_stocks
-                profit = diff - (0.3*diff)
-                if profit >= cost:
-                    found = True
-                    break
-        if found:
-            labels = np.append(labels, 1)
-        else:
+        for s in range(1,look_ahead+1):
+            change = data[i+s]-data[i]
+            if change > 0 and (change/data[i])*100 >= 5.0:
+                found = True
+                labels = np.append(labels, 1)
+                break
+        if not found:
             labels = np.append(labels, -1)
 
     return labels
+
 
 #needs current stock data, snp500 data (^GSPC), NASDAQ data (^IXIC)
 def get_feature_vector(data, snp_data, nasdaq_data, date):

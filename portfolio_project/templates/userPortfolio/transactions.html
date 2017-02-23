@@ -4,6 +4,10 @@
 
 {% block body_block %}
 
+<script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.3.min.js"></script>
+<link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.3.min.css">
+
+
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.js"></script>
 <script type="text/javascript">
   $(document).ready(function() {
@@ -17,12 +21,15 @@
   });
 </script>
 
+{{ div | safe }}
+{{ script | safe }}
+
   <div class="content">
     <h2> Transactions </h2>
       {% autoescape off %}{{ transaction_table }}{% endautoescape %}
 
-  </div>
-  <div id="stock-plot" class="content"><div>
+  <!-- </div>
+  <div id="stock-plot" class="content"><div> -->
 
 
 {% endblock %}

@@ -26,13 +26,15 @@ def index(request):
 def transactions(request):
     if request.method == 'GET':
         stockName = request.GET.get('stock', '')
-        html_table = render_transaction_table(stockName)
+        html_table = render_transaction_table(stockName, request.user)
     else:
-        html_table = render_transaction_table('')
+        html_table = render_transaction_table('', request.user)
+
+    script, div = backend.render_transaction_sales(request.user)
 
     context_dict = {'username_apos' : (request.user.username.title()+"'s"), \
-    'user' : (request.user.username).title(), 'transaction_table' : html_table\
-    }
+    'user' : (request.user.username).title(), 'transaction_table' : html_table,\
+     'script' : script , 'div' : div}
 
     return render(request, 'userPortfolio/transactions.html' ,context_dict)
 
@@ -219,10 +221,10 @@ def render_portfolio_table(qs):
 
     return tableHtml
 
-def render_transaction_table(stockName):
+def render_transaction_table(stockName, user):
     qs = []
     if(stockName == ''):
-        qs = UserTransactionsModel.objects.all()
+        qs = UserTransactionsModel.objects.filter(username=user)
     else:
         port_id_qs = UserPortfolioModel.objects.filter(stockName = stockName)
         if len(port_id_qs) == 1:
@@ -230,10 +232,10 @@ def render_transaction_table(stockName):
             qs = UserTransactionsModel.objects.filter(portfolioId = port_id)
 
     fields = ('stockName', 'buyDate', 'sellDate', 'buyPrice', 'sellPrice', \
-    'numberOfStocksBought', 'numberOfStocksSold')
+    'numberOfStocksBought', 'numberOfStocksSold', 'returns', 'reason')
     fields_names = {'stockName' : 'Stock Name', 'buyDate' : 'Buy Date', 'sellDate' : 'Sell Date',\
     'buyPrice' : 'Buy Price', 'sellPrice' : 'Sell Price', 'numberOfStocksBought' : '# Bought', \
-    'numberOfStocksSold' : '# Sold'}
+    'numberOfStocksSold' : '# Sold', 'returns' : 'Returns', 'reason' : 'Reason'}
     attrs = {'align' : 'center'}
 
     tableHtml = '''<div class="table-container">

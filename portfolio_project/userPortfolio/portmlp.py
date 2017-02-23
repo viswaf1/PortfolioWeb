@@ -216,7 +216,7 @@ class MLPClassifier:
                 if len(stock_data) > start_ind:
                     stock_slice = stock_data[-start_ind:-end_ind]
                     if stock_slice.iloc[-1].close > self.min_price:
-                        period_stock_data.append((stockName, stock_slice, test_period+self.num_days+self.look_ahead, self.look_ahead))
+                        period_stock_data.append((stockName, stock_slice, test_period+self.num_days+self.look_ahead, self.look_ahead, offset, False))
 
             pool = multiprocessing.Pool(5)
             for eachStockData in period_stock_data:
@@ -312,7 +312,7 @@ def run_MLP((train, train_labels, test, test_labels, depth, width, stockName)):
     all_train_loss = []
     all_test_loss = []
     all_test_accuracies = []
-    final_train_loss = 0
+    final_train_accuracy = 0
     for epoch in range(num_epochs):
         # In each epoch, we do a full pass over the training data:
         train_err = 0
@@ -323,7 +323,6 @@ def run_MLP((train, train_labels, test, test_labels, depth, width, stockName)):
             train_err += train_fn(inputs, targets)
             train_batches += 1
 
-        final_train_loss = train_err/train_batches
 
         # # Then we print the results for this epoch:
         # print("Epoch {} of {} took {:.3f}s".format(
@@ -343,7 +342,7 @@ def run_MLP((train, train_labels, test, test_labels, depth, width, stockName)):
         #     test_batches += 1
         # all_test_accuracies.append(test_acc / test_batches)
 
-
+    train_loss, final_train_accuracy = val_fn(X_train, y_train)
     test_err, test_acc = val_fn(X_test, y_test)
     test_err = 0+test_err
     test_acc = 0+test_acc
@@ -387,7 +386,7 @@ def run_MLP((train, train_labels, test, test_labels, depth, width, stockName)):
 
     result = {'stockName':stockName, 'accuracy': test_acc  * 100,
     'positive_accuracy':positive_accuracy, 'percent_covered':percent_covered,
-    'training_loss' : final_train_loss, 'prediction' : result_labels }
+    'training_accuracy' : final_train_accuracy, 'prediction' : result_labels }
 
     return result
     #return test_acc / test_batches * 100
@@ -437,13 +436,13 @@ def run_cointoss((train, train_labels, test, test_labels, C)):
         return(-1)
 
 
-def get_feature_label_for_stocks_raw((stock_name, data, num_days, look_ahead)):
+def get_feature_label_for_stocks_raw((stock_name, data, num_days, look_ahead, offset, blind)):
     #import pdb; pdb.set_trace()
     # data = data[:-200]
     # snp_data = snp_data[:-200]
     # nasdaq_data = nasdaq_data[:-200]
     start_time = time.time()
-    offset = 40
+    # offset = 40
     slice_len = num_days+look_ahead+offset
     data = data.tail(slice_len)
     #nasdaq_data = nasdaq_data.tail(slice_len)
@@ -456,8 +455,6 @@ def get_feature_label_for_stocks_raw((stock_name, data, num_days, look_ahead)):
     low = data_frame['low'].values
     volume = data_frame['volume'].values
 
-    if data.shape[0] < slice_len:
-        return ''
 
     try:
         #Append required technical indicators to the data
@@ -521,15 +518,18 @@ def get_feature_label_for_stocks_raw((stock_name, data, num_days, look_ahead)):
         #  labels))
         #feature_matrix = np.column_stack((mom10, mom3, rsi16, cci12, macdhist, percentk, percentd, ado, willr10, disparity5, disparity10, labels))
         #print("--- %s seconds ---" % (time.time() - start_time))
-        feature_matrix = feature_matrix[offset:-(look_ahead)]
+        if not blind:
+            feature_matrix = feature_matrix[offset:-(look_ahead)]
+        else:
+            feature_matrix = feature_matrix[offset:]
     except Exception as e:
-        print str(e)
+        print ("portmlp: get_feature_label_for_stocks_raw : " + str(e))
         feature_matrix = np.array([])
     return (stock_name, feature_matrix)
 
 
 
-def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead)):
+def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead, blind)):
     #import pdb; pdb.set_trace()
     # data = data[:-200]
     # snp_data = snp_data[:-200]
@@ -614,7 +614,10 @@ def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead)):
 
         #feature_matrix = np.column_stack((mom10, mom3, rsi16, cci12, macdhist, percentk, percentd, ado, willr10, disparity5, disparity10, labels))
         #print("--- %s seconds ---" % (time.time() - start_time))
-        feature_matrix = feature_matrix[offset:-(look_ahead)]
+        if not blind:
+            feature_matrix = feature_matrix[offset:-(look_ahead)]
+        else:
+            feature_matrix = feature_matrix[offset:]
     except Exception as e:
         print str(e)
         feature_matrix = np.array([])
@@ -693,6 +696,26 @@ def get_feature_label_for_stocks_rdp((stock_name, data, num_days, look_ahead)):
     return (stock_name, feature_matrix)
 
 
+# def get_label(data, look_ahead):
+#     #data - numpy array
+#     labels = np.array([])
+#     data_len = data.size
+#     for i in range(data_len):
+#         if i+look_ahead >= data_len:
+#             labels = np.append(labels, np.nan)
+#             continue
+#         sma = 0
+#         for s in range(1,look_ahead+1):
+#             sma = sma + data[i+s]
+#         sma = sma/look_ahead
+#         if sma > data[i]:
+#             labels = np.append(labels, 1)
+#         else:
+#             labels = np.append(labels, -1)
+#
+#     return labels
+
+#one if price increases by 5% in look ahead
 def get_label(data, look_ahead):
     #data - numpy array
     labels = np.array([])
@@ -702,12 +725,14 @@ def get_label(data, look_ahead):
             labels = np.append(labels, np.nan)
             continue
         sma = 0
+        found = False
         for s in range(1,look_ahead+1):
-            sma = sma + data[i+s]
-        sma = sma/look_ahead
-        if sma > data[i]:
-            labels = np.append(labels, 1)
-        else:
+            change = data[i+s]-data[i]
+            if change > 0 and (change/data[i])*100 >= 5.0:
+                found = True
+                labels = np.append(labels, 1)
+                break
+        if not found:
             labels = np.append(labels, -1)
 
     return labels
