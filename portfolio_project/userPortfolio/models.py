@@ -52,6 +52,10 @@ class SNP500Model(models.Model):
     sector = models.TextField()
     industry = models.TextField()
 
+class USDForexModel(models.Model):
+    stockName = models.TextField(null=False, unique=True)
+    
+
 
 class BacktestDataModel(models.Model):
     backtest_id = models.TextField()

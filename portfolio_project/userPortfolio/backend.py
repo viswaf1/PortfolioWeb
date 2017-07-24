@@ -42,7 +42,7 @@ class Singleton:
         return isinstance(inst, self._decorated)
 
 
-def buy_stock(user, stockName, buyPrice, numberOfStocks, buyDate, stopLoss=-1, stopTarget=-1):
+def buy_stock(user, stockName, buyPrice, numberOfStocks, buyDate, stopLoss=-1, stopTarget=-1, minStopLoss=0.03):
     #check if stockName is present in portfolio_table
     portQs = UserPortfolioModel.objects.filter(username = user, stockName = stockName)
     amount = buyPrice*numberOfStocks
@@ -59,7 +59,7 @@ def buy_stock(user, stockName, buyPrice, numberOfStocks, buyDate, stopLoss=-1, s
         portId = hashlib.md5(stockName+str(buyPrice)+buyDate.strftime("%B%d,%Y")).hexdigest()
         UserPortfolioModel.objects.create(username = user, portfolioId = portId, \
         stockName = stockName, moneyInvested = amount, numberOfStocks = numberOfStocks,
-        stopLoss = stopLoss, stopTarget=stopTarget, minStopLoss=buyPrice-(buyPrice*0.1))
+        stopLoss = stopLoss, stopTarget=stopTarget, minStopLoss=buyPrice-(buyPrice*minStopLoss))
 
     #Add transaction with portfolioId to transaction tables
     UserTransactionsModel.objects.create(username = user, portfolioId = portId, \
@@ -233,7 +233,6 @@ def get_historical_stock_data(stockName, offline = True):
             if 1:
                 tempStockFrame = data.DataReader(stockName, 'yahoo', frameEndDate.strftime("%m/%d/%Y"))
                 tempStockFrame.columns = map(str.lower, tempStockFrame.columns)
-                import pdb; pdb.set_trace()
                 if not frameEndDate < tempStockFrame.index.max().to_pydatetime().date():
                     stockFrame = pandas.concat([stockFrame, tempStockFrame])
                 if stockFrame.index.max().to_pydatetime().date() < queryEndDate:
@@ -302,7 +301,7 @@ def render_stock_data(stockName):
     color=fancyBlue)
     volume_plot.xaxis.visible = False
 
-    sar_data = SAR(stock_data)
+    sar_data = SAR(stock_data, acceleration=0.01, maximum=0.3)
     ema_data = pandas.ewma(stock_data['close'], span=5)
     print(sar_data)
     mcl1 = candles.line(sar_data.index, sar_data, line_width=1,

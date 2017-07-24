@@ -1,6 +1,6 @@
 import datetime, sys, os, multiprocessing, time
 import threading
-from userPortfolio.models import UserTransactionsModel, UserPortfolioModel, AllStocksModel, SNP500Model
+from userPortfolio.models import UserTransactionsModel, UserPortfolioModel, AllStocksModel, SNP500Model, USDForexModel
 import csv, hashlib
 import pandas, urllib2, csv, random, datetime, string, subprocess
 from pytz import timezone
@@ -113,6 +113,8 @@ class EnsambleClassifier:
                 stocks = AllStocksModel.objects.all()
             elif self.type == 'snp500':
                 stocks = SNP500Model.objects.all()
+            elif self.type == 'forex':
+                stocks = USDForexModel.objects.all()
             stockNames = []
             for eachStock in stocks:
                 stockNames.append(eachStock.stockName)
@@ -143,7 +145,6 @@ class EnsambleClassifier:
                 stock_slice = stock_data[-start_ind:-end_ind]
                 if stock_slice.iloc[-1].close > self.min_price:
                     period_stock_data.append((stockName, stock_slice, self.num_days+self.look_ahead, self.look_ahead, offset, True))
-
         pool = multiprocessing.Pool(16)
         for eachStockData in period_stock_data:
             # ret = portmlp.get_feature_label_for_stocks_raw(eachStockData)

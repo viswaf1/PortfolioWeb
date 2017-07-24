@@ -38,6 +38,12 @@ def transactions(request):
 
     return render(request, 'userPortfolio/transactions.html' ,context_dict)
 
+# @login_required
+# def transaction_analysis(request):
+#     script, div = backend.render_transaction_analysis(request.user)
+
+
+
 # Create your views here.
 def register(request):
     # A boolean value for telling the template whether the registration was successful.
