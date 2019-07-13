@@ -19,7 +19,7 @@ from django.conf.urls.static import static
 
 
 urlpatterns = [
-    url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin/', admin.site.urls),
     url(r'^userPortfolio/', include('userPortfolio.urls')),
 ]
 urlpatterns += static(settings.STATIC_URL+'/pure/', document_root=settings.STATIC_ROOT+'/pure/')

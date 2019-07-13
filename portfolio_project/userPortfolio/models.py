@@ -7,7 +7,7 @@ from django_pandas.managers import DataFrameManager
 # Create your models here.
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     moneyAvailable = models.FloatField(default=0.0)
     #objects = DataFrameManager()
 
@@ -15,7 +15,7 @@ class UserProfile(models.Model):
         return self.user.username
 
 class UserPortfolioModel(models.Model):
-    username = models.ForeignKey(User, to_field='username')
+    username = models.ForeignKey(User, to_field='username', on_delete=models.CASCADE)
     portfolioId = models.TextField(null=False)
     stockName = models.TextField(null=False, verbose_name='Stock Name')
     moneyInvested = models.FloatField(null=False, verbose_name='Money Invested')
@@ -26,7 +26,7 @@ class UserPortfolioModel(models.Model):
 
 
 class UserTransactionsModel(models.Model):
-    username = models.ForeignKey(User, to_field='username')
+    username = models.ForeignKey(User, to_field='username', on_delete=models.CASCADE)
     portfolioId = models.TextField(null=False)
     stockName = models.TextField(null=False)
     buyDate = models.DateTimeField(null=True)
@@ -59,7 +59,7 @@ class USDForexModel(models.Model):
 
 class BacktestDataModel(models.Model):
     backtest_id = models.TextField()
-    username = models.ForeignKey(User, to_field='username')
+    username = models.ForeignKey(User, to_field='username', on_delete=models.CASCADE)
     date = models.DateTimeField(null=False)
     buySignalData = models.TextField(null=False)
     sellSignalData = models.TextField(null=False)

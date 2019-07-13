@@ -141,7 +141,7 @@ def append_today_quote(dataFrame, endDate, stockName):
 @Singleton
 class StockData:
 
-    def __init__(self, offline=True):
+    def __init__(self, offline=False):
         self.data_ditc = {}
         self.offline = offline
         self.append_flag = False

@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import talib
 import numpy as np
 from operator import itemgetter
+import userPortfolio.ensamble_stock as ensamble_stock
 
 
 class BackTest:
@@ -38,7 +39,7 @@ class BackTest:
         self.tax_percent = 30.0
         self.max_num_stocks = 5
         # self.picks_file = 'picked_stocks_voting3_filtered.txt'
-        self.picks_file = 'picked_stocks_ensemble_two_negative_1000.txt'
+        self.picks_file = 'picked_stocks_tensorflow_test.txt'
 
     def load_picks_dictionary(self):
         try:
@@ -343,7 +344,6 @@ class BackTest:
         return start_ind
 
     def run_future_test(self, num_days, test_start_date=None, reset_picks = False):
-        import userPortfolio.ensamble_forex as ensamble_forex
         if reset_picks:
             self.picks_dictionary = {}
         else:
@@ -375,7 +375,7 @@ class BackTest:
 
         all_liss = []
         next_day_transactions = []
-        look_ahead = 5
+        look_ahead = 10
         all_labels = []
         for dayInd in range(start_ind, end_ind+1-look_ahead):
             current_date = index_data.index[dayInd].date()
@@ -388,16 +388,19 @@ class BackTest:
                 stock_data = backend.StockData.Instance().get_historical_stock_data(stock_name)
                 label_data = stock_data.ix[:future_date]
 
-                labels = ensamble_forex.get_label(label_data.close.values, look_ahead)
+                labels = ensamble_stock.get_label(label_data.close.values, look_ahead)
                 label = labels[-look_ahead-2]
-                all_labels.append(label)
-                print label
+                if label > 0:
+                    all_labels.append(label)
+                else:
+                    all_labels.append(0)
+            print "Current Pick Accuracy is " + str((sum(all_labels)*100.0)/len(all_labels))
         return all_labels
 
 
 def pick_subprocess((pick_date,)):
     print('called')
-    import userPortfolio.ensamble_stock as ensamble
+    import userPortfolio.tensor_neural_stock as ensamble
     eble = ensamble.EnsambleClassifier(num_days=200)
     picked_stocks = eble.pick_stocks(pick_date=pick_date)
 
