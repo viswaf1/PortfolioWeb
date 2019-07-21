@@ -1,5 +1,5 @@
 
-from __future__ import absolute_import, print_function, unicode_literals
+
 import sys
 import requests
 import json
@@ -7,7 +7,7 @@ import re
 import pandas as pd
 from bs4 import BeautifulSoup
 if sys.version_info[0] == 2:  # Python 2
-    from urllib import quote
+    from urllib.parse import quote
 else:  # Python 3
     from urllib.parse import quote
 

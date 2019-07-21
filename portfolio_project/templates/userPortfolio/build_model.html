@@ -1,0 +1,70 @@
+{% extends 'userPortfolio/base.html' %}
+
+{% block title %} {{ username_apos }} Portfolion Manager {% endblock %}
+
+{% block body_block %}
+
+<script src="http://cdn.pydata.org/bokeh/release/bokeh-1.2.0.min.js"></script>
+<link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-1.2.0.min.css">
+{% load static %}
+<link rel="stylesheet" href="{% static "loading.css" %}">
+
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.js"></script>
+<script type="text/javascript">
+  $(document).ready(function() {
+    $.ajax({
+      type: "GET",
+      url: "/userPortfolio/stock_plot/?stock=GOOGL",
+        $("#stock-plot").html(data);
+      }
+    });
+  });
+</script>
+{{ div | safe }}
+{{ script | safe }}
+
+  <div class="content">
+    <h2> Build Prediction Model </h2>
+    {% if post_error %}
+    <p style="color:red;">Error: {{error_message}}</p>
+    {% endif %}
+    {% if post_success %}
+    <p style="color:blue;">{{post_message}}</p>
+    {% endif %}
+    <form class="pure-form pure-form-aligned" id="login_form" method="post" action="/userPortfolio/build_model/">
+            {% csrf_token %}
+          <fieldset>
+            <div class="pure-control-group">
+              <label for="IndexType" >Index Type</label>
+              <select id="state" class="pure-input-1-2" name="IndexType">
+                    {% autoescape off %}{{ DataIndices }}{% endautoescape %}
+              </select>
+            </div>
+            <div class="pure-control-group">
+              <label for="NumTrainingDays">Number of Training Days</label> <input type="text" name="trainingDays" value="{{trainingDays}}" size="50" />
+            </div>
+            <div class="pure-control-group">
+              <label for="FeatureLength">Feature Length</label> <input type="text" name="featureLength" value="{{featureLength}}" size="50" />
+            </div>
+            <div class="pure-control-group">
+              <label for="Validation">Validation Set Percentage</label> <input type="text" name="validationPercent" value="{{validationPercent}}" size="50" />
+            </div>
+            <div class="pure-control-group">
+              <label for="PositiveLabelValue">Value For Positive Lable</label> <input type="text" name="positiveLabelValue" value="{{positiveLabelValue}}" size="50" />
+            </div>
+             <div class="pure-control-group">
+              <label for="holdDays">Number of stock hold days</label> <input type="text" name="holdDays" value="{{holdDays}}" size="50" />
+            </div>
+
+            <input type="submit" class="pure-button pure-button-primary" value="submit" />
+          </fieldset>
+    </form>
+
+    {% autoescape off %}{{LoadingDiv}}{% endautoescape %}
+
+  <!-- </div>
+  <div id="stock-plot" class="content"><div> -->
+
+
+{% endblock %}

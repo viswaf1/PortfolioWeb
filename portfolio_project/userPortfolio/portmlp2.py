@@ -2,7 +2,7 @@
 import datetime, sys, os, multiprocessing, time
 from userPortfolio.models import UserTransactionsModel, UserPortfolioModel, AllStocksModel, SNP500Model
 import csv, hashlib
-import pandas, urllib2, csv, random, datetime, string, subprocess
+import pandas, urllib.request, urllib.error, urllib.parse, csv, random, datetime, string, subprocess
 from pytz import timezone
 from dateutil.relativedelta import relativedelta
 from math import pi
@@ -96,11 +96,11 @@ def pick_and_run_top_stocks(top_percent=70):
     svc = SVMClassifier(num_days=100)
     ret = svc.future_test(test_period=1, num_periods=111, moveback=10, period_start=1)
     retarr = np.array(ret)
-    print " Selection Mean "+str(np.mean(retarr))
+    print(" Selection Mean "+str(np.mean(retarr)))
 
 
 
-    sorted_results = sorted(svc.all_results.items(), key=operator.itemgetter(1))
+    sorted_results = sorted(list(svc.all_results.items()), key=operator.itemgetter(1))
     num = (top_percent/100)*len(sorted_results)
     top_results = sorted_results[-num:]
     selected_stocks = [x[0] for x in top_results]
@@ -109,7 +109,7 @@ def pick_and_run_top_stocks(top_percent=70):
     ret = svc.future_test(test_period=1, num_periods=1, moveback=5,
     period_start=0, stockNames = selected_stocks)
     retarr = np.array(ret)
-    print "Top Stocks Mean "+str(np.mean(retarr))
+    print("Top Stocks Mean "+str(np.mean(retarr)))
 
     return svc
 
@@ -135,7 +135,7 @@ class MLPClassifier:
         stock_name, data = result
         #print stock_name
         if data.shape[0] < self.num_days:
-            print "Error in stock data: "+stock_name
+            print("Error in stock data: "+stock_name)
             return
 
         features = []
@@ -194,7 +194,7 @@ class MLPClassifier:
                 try:
                     stock_data = backend.StockData.Instance().get_historical_stock_data(stockName)
                 except Exception as err:
-                    print "Error getting data for " + stockName + " " + str(err)
+                    print("Error getting data for " + stockName + " " + str(err))
                     continue
                 if len(stock_data) < 1:
                     continue
@@ -256,8 +256,9 @@ class MLPClassifier:
         self.cointoss_results.append(result)
 
 
-def run_MLP((train, train_labels, test, test_labels, depth, width, stockName)):
+def run_MLP(xxx_todo_changeme):
 
+    (train, train_labels, test, test_labels, depth, width, stockName) = xxx_todo_changeme
     X_train = np.array(train, dtype=np.float32)
     y_train = np.array(train_labels, dtype=np.int32)
     X_test = np.array(test, dtype=np.float32)
@@ -326,9 +327,9 @@ def run_MLP((train, train_labels, test, test_labels, depth, width, stockName)):
 
 
         # Then we print the results for this epoch:
-        print("Epoch {} of {} took {:.3f}s".format(
-            epoch + 1, num_epochs, time.time() - start_time))
-        print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
+        print(("Epoch {} of {} took {:.3f}s".format(
+            epoch + 1, num_epochs, time.time() - start_time)))
+        print(("  training loss:\t\t{:.6f}".format(train_err / train_batches)))
         all_train_loss.append(train_err / train_batches)
 
 
@@ -361,9 +362,9 @@ def run_MLP((train, train_labels, test, test_labels, depth, width, stockName)):
     test_err = 0+test_err
     test_acc = 0+test_acc
     print("Final results:")
-    print("  test loss:\t\t\t{:.6f}".format(test_err))
-    print("  test accuracy:\t\t{:.2f} %".format(
-        test_acc * 100))
+    print(("  test loss:\t\t\t{:.6f}".format(test_err)))
+    print(("  test accuracy:\t\t{:.2f} %".format(
+        test_acc * 100)))
 
     result_labels = predict_fn(X_test)
 
@@ -417,7 +418,8 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
         yield inputs[excerpt], targets[excerpt]
 
 
-def run_cointoss((train, train_labels, test, test_labels, C)):
+def run_cointoss(xxx_todo_changeme1):
+    (train, train_labels, test, test_labels, C) = xxx_todo_changeme1
     iter_results = []
     for i in range(len(test_labels)):
         if random.randint(1,2) == 1:
@@ -435,7 +437,7 @@ def run_cointoss((train, train_labels, test, test_labels, C)):
     iter_outcome = ((iter_success)/(iter_success*1.0 + iter_fails*1.0))*100
 
 
-    print(" Cointoss Accuracy =  : "+str(iter_outcome)+'% ('+str(iter_success)+" / "+str(iter_fails)+')')
+    print((" Cointoss Accuracy =  : "+str(iter_outcome)+'% ('+str(iter_success)+" / "+str(iter_fails)+')'))
     result = iter_outcome
     # if iter_results[0] > 0.1:
     #     return(iter_outcome)
@@ -447,11 +449,12 @@ def run_cointoss((train, train_labels, test, test_labels, C)):
     else:
         return(-1)
 
-def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead)):
+def get_feature_label_for_stocks(xxx_todo_changeme2):
     #import pdb; pdb.set_trace()
     # data = data[:-200]
     # snp_data = snp_data[:-200]
     # nasdaq_data = nasdaq_data[:-200]
+    (stock_name, data, num_days, look_ahead) = xxx_todo_changeme2
     start_time = time.time()
     offset = 40
     slice_len = num_days+look_ahead+offset
@@ -500,17 +503,18 @@ def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead)):
         #print("--- %s seconds ---" % (time.time() - start_time))
         feature_matrix = feature_matrix[offset:-(look_ahead)]
     except Exception as e:
-        print str(e)
+        print(str(e))
         feature_matrix = np.array([])
     return (stock_name, feature_matrix)
 
 
 
-def get_feature_label_for_stocks_1((stock_name, data, num_days, look_ahead)):
+def get_feature_label_for_stocks_1(xxx_todo_changeme3):
     #import pdb; pdb.set_trace()
     # data = data[:-200]
     # snp_data = snp_data[:-200]
     # nasdaq_data = nasdaq_data[:-200]
+    (stock_name, data, num_days, look_ahead) = xxx_todo_changeme3
     start_time = time.time()
     offset = 40
     slice_len = num_days+look_ahead+offset
@@ -593,17 +597,18 @@ def get_feature_label_for_stocks_1((stock_name, data, num_days, look_ahead)):
         #print("--- %s seconds ---" % (time.time() - start_time))
         feature_matrix = feature_matrix[offset:-(look_ahead)]
     except Exception as e:
-        print str(e)
+        print(str(e))
         feature_matrix = np.array([])
     return (stock_name, feature_matrix)
 
 
 
-def get_feature_label_for_stocks_rdp((stock_name, data, num_days, look_ahead)):
+def get_feature_label_for_stocks_rdp(xxx_todo_changeme4):
     #import pdb; pdb.set_trace()
     # data = data[:-200]
     # snp_data = snp_data[:-200]
     # nasdaq_data = nasdaq_data[:-200]
+    (stock_name, data, num_days, look_ahead) = xxx_todo_changeme4
     start_time = time.time()
     offset = 40
     slice_len = num_days+look_ahead+offset
@@ -665,7 +670,7 @@ def get_feature_label_for_stocks_rdp((stock_name, data, num_days, look_ahead)):
         #print("--- %s seconds ---" % (time.time() - start_time))
         feature_matrix = feature_matrix[offset:-(look_ahead)]
     except Exception as e:
-        print str(e)
+        print(str(e))
         feature_matrix = np.array([])
     return (stock_name, feature_matrix)
 

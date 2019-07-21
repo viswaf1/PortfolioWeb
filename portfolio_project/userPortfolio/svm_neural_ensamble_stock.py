@@ -1,8 +1,8 @@
-import datetime, sys, os, multiprocessing, time, cPickle
+import datetime, sys, os, multiprocessing, time, pickle
 import threading
 from userPortfolio.models import UserTransactionsModel, UserPortfolioModel, AllStocksModel, SNP500Model, USDForexModel
 import csv, hashlib
-import pandas, urllib2, csv, random, datetime, string, subprocess
+import pandas, urllib.request, urllib.error, urllib.parse, csv, random, datetime, string, subprocess
 from pytz import timezone
 from dateutil.relativedelta import relativedelta
 from math import pi
@@ -45,7 +45,7 @@ class EnsambleClassifier:
         stock_name, data = result
         #print stock_name
         if data.shape[0] < self.num_days:
-            print "Error in stock data: "+stock_name
+            print("Error in stock data: "+stock_name)
             return
 
         features = []
@@ -90,7 +90,7 @@ class EnsambleClassifier:
         stock_name, data = result
         #print stock_name
         if data.shape[0] < self.num_days:
-            print "Error in stock data: "+stock_name
+            print("Error in stock data: "+stock_name)
             return
 
         features = []
@@ -147,7 +147,7 @@ class EnsambleClassifier:
             try:
                 stock_data = backend.StockData.Instance().get_historical_stock_data(stockName)
             except Exception as err:
-                print "Error getting data for " + stockName + " " + str(err)
+                print("Error getting data for " + stockName + " " + str(err))
                 continue
             if len(stock_data) < 1:
                 continue
@@ -155,9 +155,9 @@ class EnsambleClassifier:
 
     def load_svm_predictions_dictionary(self):
         try:
-            self.svm_predictions_dictionary = cPickle.load(open(self.svm_predictions_file, 'rb'))
+            self.svm_predictions_dictionary = pickle.load(open(self.svm_predictions_file, 'rb'))
         except Exception as ex:
-            print(str(ex))
+            print((str(ex)))
             self.svm_predictions_dictionary = {}
 
 
@@ -168,11 +168,12 @@ class EnsambleClassifier:
         self.cointoss_results.append(result)
 
 
-def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead, offset, blind)):
+def get_feature_label_for_stocks(xxx_todo_changeme):
     #import pdb; pdb.set_trace()
     # data = data[:-200]
     # snp_data = snp_data[:-200]
     # nasdaq_data = nasdaq_data[:-200]
+    (stock_name, data, num_days, look_ahead, offset, blind) = xxx_todo_changeme
     start_time = time.time()
     # offset = 40
     slice_len = num_days+look_ahead+offset
@@ -329,11 +330,12 @@ def get_negative_label2(data, look_ahead):
             labels = np.append(labels, 1)
     return labels
 
-def get_feature_label_for_stocks_raw((stock_name, data, num_days, look_ahead, offset, blind)):
+def get_feature_label_for_stocks_raw(xxx_todo_changeme1):
     #import pdb; pdb.set_trace()
     # data = data[:-200]
     # snp_data = snp_data[:-200]
     # nasdaq_data = nasdaq_data[:-200]
+    (stock_name, data, num_days, look_ahead, offset, blind) = xxx_todo_changeme1
     start_time = time.time()
     # offset = 40
     slice_len = num_days+look_ahead+offset
@@ -416,6 +418,6 @@ def get_feature_label_for_stocks_raw((stock_name, data, num_days, look_ahead, of
         else:
             feature_matrix = feature_matrix[offset:]
     except Exception as e:
-        print ("portmlp: get_feature_label_for_stocks_raw : " + str(e))
+        print(("portmlp: get_feature_label_for_stocks_raw : " + str(e)))
         feature_matrix = np.array([])
     return (stock_name, feature_matrix)

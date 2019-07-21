@@ -40,18 +40,18 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_tables2',
     'userPortfolio',
 )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
 )
 
 ROOT_URLCONF = 'portfolio_project.urls'
@@ -108,3 +108,17 @@ STATIC_ROOT = ''
 STATIC_URL = '/static/' # You may find this is already defined as such.
 
 STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"), )
+
+MODELS_DIR = os.path.join(BASE_DIR, 'ModelData')
+
+MODELS_STATE_FILE = os.path.join(MODELS_DIR, 'ModelRunState.txt')
+
+# CELERY_BROKER_URL = 'amqp://localhost'
+# CELERY STUFF
+BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+DATETIMESTRFORMAT = "%Y-%m-%d %H:%M:%S"

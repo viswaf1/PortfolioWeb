@@ -1,8 +1,8 @@
-import datetime, sys, os, multiprocessing, time, cPickle
+import datetime, sys, os, multiprocessing, time, pickle
 import threading
 from userPortfolio.models import UserTransactionsModel, UserPortfolioModel, AllStocksModel, SNP500Model, USDForexModel
 import csv, hashlib, itertools
-import pandas, urllib2, csv, random, datetime, string, subprocess
+import pandas, urllib.request, urllib.error, urllib.parse, csv, random, datetime, string, subprocess
 from pytz import timezone
 from dateutil.relativedelta import relativedelta
 from math import pi
@@ -101,7 +101,7 @@ class EnsambleClassifier:
             try:
                 stock_data = backend.StockData.Instance().get_historical_stock_data(stockName)
             except Exception as err:
-                print "Error getting data for " + stockName + " " + str(err)
+                print("Error getting data for " + stockName + " " + str(err))
                 continue
             if len(stock_data) < 1:
                 continue
@@ -109,7 +109,7 @@ class EnsambleClassifier:
                 try:
                     date_ind = stock_data.index.get_loc(pick_date)
                 except:
-                    print("EnsambleClassifier:pick_stock: date not found for stock "+stockName)
+                    print(("EnsambleClassifier:pick_stock: date not found for stock "+stockName))
                     continue
                 stock_data = stock_data[:date_ind]
             if len(stock_data) > start_ind:
@@ -125,10 +125,10 @@ class EnsambleClassifier:
         pool.close()
         pool.join()
         period_train_test_data = []
-        pf_keys = self.period_features.keys()
+        pf_keys = list(self.period_features.keys())
         for eachKey in pf_keys:
             eachFeature = self.period_features[eachKey]
-            fkeys = eachFeature.keys()
+            fkeys = list(eachFeature.keys())
             if len(fkeys) < 1:
                 print("Error only one feature found")
                 continue
@@ -200,7 +200,7 @@ class EnsambleClassifier:
             try:
                 stock_data = backend.StockData.Instance().get_historical_stock_data(stockName)
             except Exception as err:
-                print "Error getting data for " + stockName + " " + str(err)
+                print("Error getting data for " + stockName + " " + str(err))
                 continue
             if len(stock_data) < 1:
                 continue
@@ -219,14 +219,14 @@ class EnsambleClassifier:
         pool.close()
         pool.join()
         period_train_test_data = []
-        pf_keys = self.period_features.keys()
+        pf_keys = list(self.period_features.keys())
 
         combined_test_features = []
         combined_test_labels = []
         combined_train_features = []
         combined_train_labels = []
         stock_train_data = []
-        stock_keys = self.period_features.keys()
+        stock_keys = list(self.period_features.keys())
         for each_stock_key in stock_keys:
             features = self.period_features[each_stock_key]['mlp']['features']
             stock_name = self.period_features[each_stock_key]['mlp']['stockName']
@@ -257,9 +257,9 @@ class EnsambleClassifier:
         checkpoint_file_path = self.model_data_loc + self.tensorflow_model_file
         progress_file_path = self.model_data_loc + self.progress_file
         try:
-            progress = cPickle.load(open(progress_file_path, 'rb'))
+            progress = pickle.load(open(progress_file_path, 'rb'))
         except Exception as ex:
-            print(str(ex))
+            print((str(ex)))
             progress = []
         test_accuracies = []
         # for each_train_set in stock_train_data:
@@ -277,10 +277,10 @@ class EnsambleClassifier:
             combined_test_labels, network_depth, network_width, num_classes,
             current_stock_name, checkpoint_file_path))
         progress.append(current_stock_name)
-        cPickle.dump(progress, open(progress_file_path, 'wb'))
+        pickle.dump(progress, open(progress_file_path, 'wb'))
 
-        print("Finished training for "+current_stock_name)
-        print("Current Test Accuracy : "+str(result['accuracy']))
+        print(("Finished training for "+current_stock_name))
+        print(("Current Test Accuracy : "+str(result['accuracy'])))
         test_accuracies.append(result['accuracy'])
 
         class_success = {}
@@ -296,7 +296,7 @@ class EnsambleClassifier:
                 class_fail[predictions[i]] += 1
 
         class_accuracies = {}
-        for ec in class_success.keys():
+        for ec in list(class_success.keys()):
             acc = (class_success[ec]*100.0)/(class_success[ec]+class_fail[ec])
             class_accuracies[ec] = acc
         import pdb; pdb.set_trace()
@@ -315,7 +315,7 @@ class EnsambleClassifier:
             temp_dic = {'mlp_ret':mlp_ret}
             temp_dic['actual'] = test_labels[i]
             self.combined_result.append(temp_dic)
-            print "Processed " + str(len(self.combined_result)) + " / " + str(len(self.period_features))
+            print("Processed " + str(len(self.combined_result)) + " / " + str(len(self.period_features)))
 
     def rank_picks(self, picked_stocks, date):
         stocks_scores = []
@@ -330,7 +330,8 @@ class EnsambleClassifier:
 
 
 
-def get_feature_label_for_stocks_raw((stock_name, data, num_days, look_ahead, offset, blind, num_classes)):
+def get_feature_label_for_stocks_raw(xxx_todo_changeme):
+    (stock_name, data, num_days, look_ahead, offset, blind, num_classes) = xxx_todo_changeme
     start_time = time.time()
     # offset = 40
     slice_len = num_days+look_ahead+offset
@@ -432,11 +433,11 @@ def get_label(data, look_ahead, num_classes):
 
     bin_sz = (bin_range[1]-bin_range[0]) / (num_bins-2)
     ranges = []
-    ranges.append((-sys.maxint-1, bin_range[0]))
+    ranges.append((-sys.maxsize-1, bin_range[0]))
     for i in range(0,num_bins-2):
         ranges.append((bin_range[0]+(i*bin_sz), bin_range[0]+((i+1)*bin_sz)))
 
-    ranges.append((bin_range[1], sys.maxint))
+    ranges.append((bin_range[1], sys.maxsize))
 
 
     #data - numpy array
@@ -493,7 +494,8 @@ def build_tensorflow_graph(feature_len, num_classes, width, depth, dropout_prob,
     return (out_layer, optimizer, cost, x, y)
 
 
-def run_MLP((train, train_labels, test, test_labels, depth, width, num_classes, stockName, checkpoint_file_path)):
+def run_MLP(xxx_todo_changeme1):
+    (train, train_labels, test, test_labels, depth, width, num_classes, stockName, checkpoint_file_path) = xxx_todo_changeme1
     learning_rate = 0.00001
     training_epochs = 1000
     batch_size = 10
@@ -551,7 +553,7 @@ def run_MLP((train, train_labels, test, test_labels, depth, width, num_classes, 
             cost = g.get_tensor_by_name("cost:0")
             x = g.get_tensor_by_name("x:0")
             y = g.get_tensor_by_name("y:0")
-            print("Restored model from file " + checkpoint_file_path)
+            print(("Restored model from file " + checkpoint_file_path))
         else:
             (out_layer, optimizer, cost, x, y) = build_tensorflow_graph(feature_len, num_classes, width, depth, dropout_prob, learning_rate)
             saver = tf.train.Saver()
@@ -587,12 +589,12 @@ def run_MLP((train, train_labels, test, test_labels, depth, width, num_classes, 
                 else:
                     final_predictions = []
                     test_accuracy = 0
-                print("Epoch:", '%04d' % (epoch+1), "cost=", \
-                   "{:.9f}".format(avg_cost), "Test accuracy=", "{:.9f}".format(test_accuracy))
+                print(("Epoch:", '%04d' % (epoch+1), "cost=", \
+                   "{:.9f}".format(avg_cost), "Test accuracy=", "{:.9f}".format(test_accuracy)))
 
 
                 confusion_mat = tf.contrib.metrics.confusion_matrix(test_labels, final_predictions, num_classes=num_classes)
-                print confusion_mat.eval()
+                print(confusion_mat.eval())
             final_train_accuracy = avg_cost
 
         print("Optimization Finished!")
@@ -600,7 +602,7 @@ def run_MLP((train, train_labels, test, test_labels, depth, width, num_classes, 
         #is checkpoint_file_path given.. save the model
         if checkpoint_file_path:
             save_path = saver.save(sess, checkpoint_file_path)
-            print("Model saved in file: %s" % save_path)
+            print(("Model saved in file: %s" % save_path))
 
         if(X_test.shape[0] > 0):
             #get predictions by running on test inputs
@@ -620,7 +622,8 @@ def run_MLP((train, train_labels, test, test_labels, depth, width, num_classes, 
 
     return result
 
-def test_model((train, train_labels, test, test_labels, depth, width, num_classes, stockName, checkpoint_file_path)):
+def test_model(xxx_todo_changeme2):
+    (train, train_labels, test, test_labels, depth, width, num_classes, stockName, checkpoint_file_path) = xxx_todo_changeme2
     learning_rate = 0.001
     training_epochs = 1000
     batch_size = 1000
@@ -689,7 +692,7 @@ def test_model((train, train_labels, test, test_labels, depth, width, num_classe
         #if checkpoint_file_path and os.path.isfile(checkpoint_file_path):
         if tf.train.checkpoint_exists(checkpoint_file_path):
             saver.restore(sess, checkpoint_file_path)
-            print("Restored model from file " + checkpoint_file_path)
+            print(("Restored model from file " + checkpoint_file_path))
 
         sess.run(init)
 
@@ -737,7 +740,7 @@ def plot_confusion_matrix(fig, ax, cm, classes,
 
     fmt = '.2f' if normalize else 'd'
     thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+    for i, j in itertools.product(list(range(cm.shape[0])), list(range(cm.shape[1]))):
         plt.text(j, i, format(cm[i, j], fmt),
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")

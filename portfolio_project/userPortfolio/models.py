@@ -64,6 +64,12 @@ class BacktestDataModel(models.Model):
     buySignalData = models.TextField(null=False)
     sellSignalData = models.TextField(null=False)
 
+class ModelFileData(models.Model):
+    type = models.TextField(null=False)
+    path = models.TextField(null=False)
+    datetime = models.DateTimeField(null=False)
+    state = models.TextField(null=False)
+
 
 
 #

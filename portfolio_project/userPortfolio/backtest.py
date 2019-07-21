@@ -1,5 +1,5 @@
 import datetime, time
-import sys,os, random, string, math, cPickle, subprocess, multiprocessing, logging
+import sys,os, random, string, math, pickle, subprocess, multiprocessing, logging
 from django.contrib.auth.models import User
 from userPortfolio.models import UserTransactionsModel, UserPortfolioModel
 from userPortfolio.models import AllStocksModel, BacktestDataModel, UserProfile
@@ -7,7 +7,7 @@ from django.db import IntegrityError
 from django.conf import settings
 import csv, hashlib
 from pandas_datareader import data
-import pandas, urllib2, csv
+import pandas, urllib.request, urllib.error, urllib.parse, csv
 from pytz import timezone
 from dateutil.relativedelta import relativedelta
 from math import pi
@@ -43,9 +43,9 @@ class BackTest:
 
     def load_picks_dictionary(self):
         try:
-            self.picks_dictionary = cPickle.load(open(self.picks_file, 'rb'))
+            self.picks_dictionary = pickle.load(open(self.picks_file, 'rb'))
         except Exception as ex:
-            print(str(ex))
+            print((str(ex)))
             self.picks_dictionary = {}
 
     def picks_callback(self, results):
@@ -53,16 +53,16 @@ class BackTest:
         date_str = pick_date.strftime('%m%d%Y')
         self.load_picks_dictionary()
         self.picks_dictionary[date_str] = picks
-        cPickle.dump(self.picks_dictionary, open(self.picks_file, 'wb'))
+        pickle.dump(self.picks_dictionary, open(self.picks_file, 'wb'))
 
     def run_picks(self, num_days, test_start_date=None, reset=False):
         if reset:
             picks_dic = {}
         else:
             try:
-                self.picks_dictionary = cPickle.load(open(self.picks_file, 'rb'))
+                self.picks_dictionary = pickle.load(open(self.picks_file, 'rb'))
             except Exception as ex:
-                print(str(ex))
+                print((str(ex)))
                 self.picks_dictionary = {}
 
         stockData = backend.StockData.Instance()
@@ -188,7 +188,7 @@ class BackTest:
             next_day_transactions = []
 
             all_picked_stocks = self.get_picks_date(current_date)
-            print all_picked_stocks
+            print(all_picked_stocks)
 
             portQs = UserPortfolioModel.objects.filter(username=backtest_user)
             for eachPort in portQs:
@@ -291,7 +291,7 @@ class BackTest:
             current_invested_amount += eachPort.moneyInvested
         moneyAvailable = UserProfile.objects.get(user=backtest_user).moneyAvailable
         total = current_invested_amount+moneyAvailable
-        print("****** FINAL available ***** : "+str(total))
+        print(("****** FINAL available ***** : "+str(total)))
 
 
     def calculate_stop_loss(self, data, timeperiod=3, initial=None):
@@ -394,11 +394,12 @@ class BackTest:
                     all_labels.append(label)
                 else:
                     all_labels.append(0)
-            print "Current Pick Accuracy is " + str((sum(all_labels)*100.0)/len(all_labels))
+            print("Current Pick Accuracy is " + str((sum(all_labels)*100.0)/len(all_labels)))
         return all_labels
 
 
-def pick_subprocess((pick_date,)):
+def pick_subprocess(xxx_todo_changeme):
+    (pick_date,) = xxx_todo_changeme
     print('called')
     import userPortfolio.tensor_neural_stock as ensamble
     eble = ensamble.EnsambleClassifier(num_days=200)

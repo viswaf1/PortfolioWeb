@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from userPortfolio.models import UserTransactionsModel, UserPortfolioModel, AllStocksModel
 import userPortfolio.backend as backend
+import userPortfolio.buildModelBackend as buildModelBackend
 import datetime
 
 
@@ -73,7 +74,7 @@ def register(request):
             registered = True
 
         else:
-            print user_form.errors, profile_form.errors
+            print(user_form.errors, profile_form.errors)
     else:
         user_form = UserForm()
         profile_form = UserProfileForm()
@@ -95,7 +96,7 @@ def user_login(request):
             else:
                 return HttpResponse("Your Rango account is disabled.")
         else:
-            print "Invalid login details: {0}, {1}".format(username, password)
+            print("Invalid login details: {0}, {1}".format(username, password))
             return HttpResponse("Invalid login details supplied.")
 
     else:
@@ -201,7 +202,7 @@ def render_portfolio_table(qs):
 
     for k in fields:
         tableHtml = tableHtml + '<th'
-        for a in attrs.keys():
+        for a in list(attrs.keys()):
             tableHtml = tableHtml + ' ' + a + ' = "' + attrs[a] + '" '
 
         tableHtml = tableHtml +' >' + fields_names[k] + '</th>\n'
@@ -214,7 +215,7 @@ def render_portfolio_table(qs):
         tableHtml = tableHtml + '<tr onclick="tablerow_onclick(this)" stock_name = "'+ str(getattr(eachRow, 'stockName')) +'" >\n'
         for k in fields:
             tableHtml = tableHtml + '<td'
-            for a in attrs.keys():
+            for a in list(attrs.keys()):
                 tableHtml = tableHtml + ' ' + a + ' = "' + attrs[a] + '" '
             tableHtml = tableHtml + '>' + str(getattr(eachRow, k)) + '</td>\n'
         tableHtml = tableHtml + '</tr>\n'
@@ -251,7 +252,7 @@ def render_transaction_table(stockName, user):
 
     for k in fields:
         tableHtml = tableHtml + '<th'
-        for a in attrs.keys():
+        for a in list(attrs.keys()):
             tableHtml = tableHtml + ' ' + a + ' = "' + attrs[a] + '" '
 
         tableHtml = tableHtml +' >' + fields_names[k] + '</th>\n'
@@ -264,7 +265,7 @@ def render_transaction_table(stockName, user):
         tableHtml = tableHtml + '<tr>\n'
         for k in fields:
             tableHtml = tableHtml + '<td'
-            for a in attrs.keys():
+            for a in list(attrs.keys()):
                 tableHtml = tableHtml + ' ' + a + ' = "' + attrs[a] + '" '
             value = '-'
             if getattr(eachRow, k):
@@ -283,3 +284,8 @@ def render_transaction_table(stockName, user):
     </div>'''
 
     return tableHtml
+
+@login_required
+def build_model(request):
+    return  buildModelBackend.renderModelBuilder(request)
+

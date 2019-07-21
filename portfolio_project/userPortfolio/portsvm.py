@@ -1,7 +1,7 @@
 import datetime, sys, os, multiprocessing, time
 from userPortfolio.models import UserTransactionsModel, UserPortfolioModel, AllStocksModel, SNP500Model
 import csv, hashlib
-import pandas, urllib2, csv, random, datetime, string, subprocess
+import pandas, urllib.request, urllib.error, urllib.parse, csv, random, datetime, string, subprocess
 from pytz import timezone
 from dateutil.relativedelta import relativedelta
 from math import pi
@@ -139,7 +139,7 @@ def pick_and_run_top_stocks(top_percent=70):
     svc = SVMClassifier(num_days=100)
     ret = svc.future_test(test_period=1, num_periods=111, moveback=10, period_start=1)
     retarr = np.array(ret)
-    print " Selection Mean "+str(np.mean(retarr))
+    print(" Selection Mean "+str(np.mean(retarr)))
     # sucdic = svc.successes_dic
     # sorted_suc = sorted(sucdic.items(), key=operator.itemgetter(1))
     # num = (top_percent/100)*len(sorted_suc)
@@ -161,7 +161,7 @@ def pick_and_run_top_stocks(top_percent=70):
     # print top_stocks
 
 
-    sorted_results = sorted(svc.all_results.items(), key=operator.itemgetter(1))
+    sorted_results = sorted(list(svc.all_results.items()), key=operator.itemgetter(1))
     num = (top_percent/100)*len(sorted_results)
     top_results = sorted_results[-num:]
     selected_stocks = [x[0] for x in top_results]
@@ -170,7 +170,7 @@ def pick_and_run_top_stocks(top_percent=70):
     ret = svc.future_test(test_period=1, num_periods=1, moveback=5,
     period_start=0, stockNames = selected_stocks)
     retarr = np.array(ret)
-    print "Top Stocks Mean "+str(np.mean(retarr))
+    print("Top Stocks Mean "+str(np.mean(retarr)))
 
     return svc
 
@@ -197,7 +197,7 @@ class SVMClassifier:
         stock_name, data = result
         #print stock_name
         if data.shape[0] < self.num_days:
-            print "Error in stock data: "+stock_name
+            print("Error in stock data: "+stock_name)
             return
 
         features = []
@@ -255,7 +255,7 @@ class SVMClassifier:
                 try:
                     stock_data = backend.StockData.Instance().get_historical_stock_data(stockName)
                 except Exception as err:
-                    print "Error getting data for " + stockName + " " + str(err)
+                    print("Error getting data for " + stockName + " " + str(err))
                     continue
                 if len(stock_data) < 1:
                     continue
@@ -332,7 +332,8 @@ class SVMClassifier:
     def cointoss_async_callback(self, result):
         self.cointoss_results.append(result)
 
-def run_libSVMGPU((train, train_labels, test, test_labels, C, gamma, epsilon, stockName)):
+def run_libSVMGPU(xxx_todo_changeme):
+    (train, train_labels, test, test_labels, C, gamma, epsilon, stockName) = xxx_todo_changeme
     ram_disk = "/tmp/port_ramdisk/"
     suffix = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(10))
     filename = "svm_train_input"+suffix
@@ -360,7 +361,7 @@ def run_libSVMGPU((train, train_labels, test, test_labels, C, gamma, epsilon, st
         print(stderrdata)
     if retcode > 0:
         os.remove(filepath)
-        print("Error "+str(stderrdata))
+        print(("Error "+str(stderrdata)))
         return(-1)
 
     try:
@@ -371,7 +372,7 @@ def run_libSVMGPU((train, train_labels, test, test_labels, C, gamma, epsilon, st
         os.remove(filepath)
         os.remove(output_filepath)
     except Exception as e:
-        print(str(e))
+        print((str(e)))
         return(-1)
 
     positive_accuracy = 0
@@ -414,7 +415,8 @@ def run_libSVMGPU((train, train_labels, test, test_labels, C, gamma, epsilon, st
 
 
 
-def run_libSVM((train, train_labels, test, test_labels, C)):
+def run_libSVM(xxx_todo_changeme1):
+    (train, train_labels, test, test_labels, C) = xxx_todo_changeme1
     svm_prob = svm_problem(train_labels, train, isKernel=True)
     param = svm_parameter('-t 2 -c %d -b 0 -h 0' % (C))
     model = svm_train(svm_prob, param)
@@ -435,7 +437,8 @@ def run_libSVM((train, train_labels, test, test_labels, C)):
     # else:
     #     return(-1)
 
-def run_linearSVM((train_data, train_labels, test_data, test_labels, C)):
+def run_linearSVM(xxx_todo_changeme2):
+    (train_data, train_labels, test_data, test_labels, C) = xxx_todo_changeme2
     svm_prob = problem(train_labels, train_data)
     param = parameter('-s 2 -c %d -n 8' % (C))
     model = train(svm_prob, param)
@@ -457,7 +460,7 @@ def run_linearSVM((train_data, train_labels, test_data, test_labels, C)):
     #
     # print(str(result_labels))
     print(accuracy)
-    print("Positive Accuracy : " +str(pos_accuracy) + " ("+str(successes)+"/"+str(fails)+")")
+    print(("Positive Accuracy : " +str(pos_accuracy) + " ("+str(successes)+"/"+str(fails)+")"))
     if result_labels[0] > 0.1:
         return(accuracy[0])
     else:
@@ -468,7 +471,8 @@ def run_linearSVM((train_data, train_labels, test_data, test_labels, C)):
     #     return(-1)
 
 
-def run_SVC((train, train_labels, test, test_labels, C)):
+def run_SVC(xxx_todo_changeme3):
+    (train, train_labels, test, test_labels, C) = xxx_todo_changeme3
     clf = svm.SVC(C=C)
     clf.fit(train, train_labels)
 
@@ -498,13 +502,14 @@ def run_SVC((train, train_labels, test, test_labels, C)):
         #     else:
         #         false_negative = false_negative + 1
     iter_outcome = (iter_success)/(iter_success*1.0 + iter_fails*1.0)
-    print(" C Success/Failure : "+str(C)+" : "+str(iter_success)+" / "+str(iter_fails)+" , Missed "+str(missed)+' , Total '+str(len(test_labels)) +
-    ' Percent classified as 1 :'+str((float(iter_success+iter_fails)/len(test_labels))*100) )
+    print((" C Success/Failure : "+str(C)+" : "+str(iter_success)+" / "+str(iter_fails)+" , Missed "+str(missed)+' , Total '+str(len(test_labels)) +
+    ' Percent classified as 1 :'+str((float(iter_success+iter_fails)/len(test_labels))*100) ))
     result = iter_outcome
     return result
 
 
-def run_cointoss((train, train_labels, test, test_labels, C, gamma, epsilon, stockName)):
+def run_cointoss(xxx_todo_changeme4):
+    (train, train_labels, test, test_labels, C, gamma, epsilon, stockName) = xxx_todo_changeme4
     iter_results = []
     for i in range(len(test_labels)):
         if random.randint(1,2) == 1:
@@ -522,7 +527,7 @@ def run_cointoss((train, train_labels, test, test_labels, C, gamma, epsilon, sto
     iter_outcome = ((iter_success)/(iter_success*1.0 + iter_fails*1.0))*100
 
 
-    print(" Cointoss Accuracy =  : "+str(iter_outcome)+'% ('+str(iter_success)+" / "+str(iter_fails)+')')
+    print((" Cointoss Accuracy =  : "+str(iter_outcome)+'% ('+str(iter_success)+" / "+str(iter_fails)+')'))
     result = iter_outcome
     # if iter_results[0] > 0.1:
     #     return(iter_outcome)
@@ -537,11 +542,12 @@ def run_cointoss((train, train_labels, test, test_labels, C, gamma, epsilon, sto
 
 
 
-def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead, offset, blind)):
+def get_feature_label_for_stocks(xxx_todo_changeme5):
     #import pdb; pdb.set_trace()
     # data = data[:-200]
     # snp_data = snp_data[:-200]
     # nasdaq_data = nasdaq_data[:-200]
+    (stock_name, data, num_days, look_ahead, offset, blind) = xxx_todo_changeme5
     start_time = time.time()
     # offset = 40
     slice_len = num_days+look_ahead+offset
@@ -749,11 +755,12 @@ def compare_test_periods(num_periods = 1):
         results.append(acc)
     return results
 
-def get_feature_label_for_stocks_raw((stock_name, data, num_days, look_ahead)):
+def get_feature_label_for_stocks_raw(xxx_todo_changeme6):
     #import pdb; pdb.set_trace()
     # data = data[:-200]
     # snp_data = snp_data[:-200]
     # nasdaq_data = nasdaq_data[:-200]
+    (stock_name, data, num_days, look_ahead) = xxx_todo_changeme6
     start_time = time.time()
     offset = 40
     slice_len = num_days+look_ahead+offset
@@ -835,7 +842,7 @@ def get_feature_label_for_stocks_raw((stock_name, data, num_days, look_ahead)):
         #print("--- %s seconds ---" % (time.time() - start_time))
         feature_matrix = feature_matrix[offset:-(look_ahead)]
     except Exception as e:
-        print str(e)
+        print(str(e))
         feature_matrix = np.array([])
     return (stock_name, feature_matrix)
 

@@ -2,7 +2,7 @@ from django.test import TestCase
 
 # Create your tests here.
 def run_multiple_ensenble():
-    import cPickle
+    import pickle
     import userPortfolio.ensamble as eble
     period_len = 20
     for i in range(5):
@@ -12,14 +12,14 @@ def run_multiple_ensenble():
         if i == 0:
             data = clc.combined_result
             fp = open('ensemble_result.txt', 'wb')
-            cPickle.dump(data, fp)
+            pickle.dump(data, fp)
             fp.close()
         else:
             fp = open('ensemble_result.txt', 'rb')
-            current_data = cPickle.load(fp)
+            current_data = pickle.load(fp)
             fp.close()
             for eachdp in clc.combined_result:
                 current_data.append(eachdp)
             fp = open('ensemble_result.txt', 'wb')
-            cPickle.dump(current_data, fp)
+            pickle.dump(current_data, fp)
         fp.close()

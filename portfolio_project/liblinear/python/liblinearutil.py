@@ -40,7 +40,7 @@ def load_model(model_file_name):
 	"""
 	model = liblinear.load_model(model_file_name.encode())
 	if not model:
-		print("can't open model file %s" % model_file_name)
+		print(("can't open model file %s" % model_file_name))
 		return None
 	model = toPyModel(model)
 	return model
@@ -161,7 +161,7 @@ def train(arg1, arg2=None, arg3=None):
 		else:
 			start_C = -1.0
 		liblinear.find_parameter_C(prob, param, nr_fold, start_C, max_C, best_C, best_rate)
-		print("Best C = %lf  CV accuracy = %g%%\n"% (best_C.value, 100.0*best_rate.value))
+		print(("Best C = %lf  CV accuracy = %g%%\n"% (best_C.value, 100.0*best_rate.value)))
 		return best_C.value,best_rate.value
 
 
@@ -171,11 +171,11 @@ def train(arg1, arg2=None, arg3=None):
 		liblinear.cross_validation(prob, param, nr_fold, target)
 		ACC, MSE, SCC = evaluations(prob.y[:l], target[:l])
 		if param.solver_type in [L2R_L2LOSS_SVR, L2R_L2LOSS_SVR_DUAL, L2R_L1LOSS_SVR_DUAL]:
-			print("Cross Validation Mean squared error = %g" % MSE)
-			print("Cross Validation Squared correlation coefficient = %g" % SCC)
+			print(("Cross Validation Mean squared error = %g" % MSE))
+			print(("Cross Validation Squared correlation coefficient = %g" % SCC))
 			return MSE
 		else:
-			print("Cross Validation Accuracy = %g%%" % ACC)
+			print(("Cross Validation Accuracy = %g%%" % ACC))
 			return ACC
 	else :
 		m = liblinear.train(prob, param)

@@ -20,6 +20,7 @@ urlpatterns = [path('', views.index, name='index'),
         #path('analysis/', views.transaction_analysis, name='analysis'),
         path('logout/', views.user_logout, name='logout'),
         path('buy_stock/', views.buy_stock, name='buy_stock'),
-        path('sell_stock/', views.ssell_stock, name='sell_stock'),
-        path('stock_plot/', views.stock_plot, name='stock_plot')
+        path('sell_stock/', views.sell_stock, name='sell_stock'),
+        path('stock_plot/', views.stock_plot, name='stock_plot'),
+        path('build_model/', views.build_model, name='build_model')
         ]

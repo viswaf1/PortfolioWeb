@@ -5,14 +5,14 @@ from django.db import IntegrityError
 from django.conf import settings
 from django.utils import timezone as djangotimezone
 import csv, hashlib
-from pandas_datareader import data
-import pandas, urllib2, csv
+import pandas_datareader as web
+import pandas, urllib.request, urllib.error, urllib.parse, csv
 from pytz import timezone
 from dateutil.relativedelta import relativedelta
 from bokeh.plotting import figure
 from bokeh.layouts import column
 from bokeh.resources import CDN
-from bokeh.models import Legend, LinearAxis
+from bokeh.models import Legend, LegendItem
 from bokeh.embed import components
 from math import pi
 from talib.abstract import *
@@ -116,12 +116,16 @@ def get_in_portfolio(user, stockName):
         return False
 
 def get_quote_today(symbol):
-    YAHOO_TODAY="http://download.finance.yahoo.com/d/quotes.csv?s=%s&f=sd1ohgl1vl1"
-    response = urllib2.urlopen(YAHOO_TODAY % symbol)
+    # YAHOO_TODAY="http://download.finance.yahoo.com/d/quotes.csv?s=%s&f=sd1ohgl1vl1"
+    YAHOO_TODAY=""
+    response = urllib.request.urlopen(YAHOO_TODAY % symbol)
     reader = csv.reader(response, delimiter=",", quotechar='"')
     for row in reader:
         if row[0] == symbol:
             return row
+
+# def get_quote_today(symbol):
+
 
 def append_today_quote(dataFrame, endDate, stockName):
     print("Appending todays quote")
@@ -131,9 +135,9 @@ def append_today_quote(dataFrame, endDate, stockName):
                   columns=["open", "high", "low", "close", "volume", "adj close"],
                   dtype=float)
         row = get_quote_today(stockName)
-        df.ix[0] = map(float, row[2:])
+        df.ix[0] = list(map(float, row[2:]))
         newEndDate = df.index.max().to_pydatetime().date()
-        df.columns = map(str.lower, df.columns)
+        df.columns = list(map(str.lower, df.columns))
         if(newEndDate > frameEndDate):
             dataFrame = dataFrame.append(df)
     return dataFrame
@@ -210,8 +214,8 @@ def get_historical_stock_data(stockName, offline = True):
             return stockFrame
         else:
             #try:
-            stockFrame = data.DataReader(stockName, 'yahoo', queryStartDate, queryEndDateStr)
-            stockFrame.columns = map(str.lower, stockFrame.columns)
+            stockFrame = web.DataReader(stockName, 'yahoo', queryStartDate, queryEndDateStr)
+            stockFrame.columns = list(map(str.lower, stockFrame.columns))
 
             append_today_quote(stockFrame, queryEndDate, stockName)
 
@@ -231,8 +235,8 @@ def get_historical_stock_data(stockName, offline = True):
             print("Not up to date.... updating")
             #try:
             if 1:
-                tempStockFrame = data.DataReader(stockName, 'yahoo', frameEndDate.strftime("%m/%d/%Y"))
-                tempStockFrame.columns = map(str.lower, tempStockFrame.columns)
+                tempStockFrame = web.DataReader(stockName, 'yahoo', frameEndDate.strftime("%m/%d/%Y"))
+                tempStockFrame.columns = list(map(str.lower, tempStockFrame.columns))
                 if not frameEndDate < tempStockFrame.index.max().to_pydatetime().date():
                     stockFrame = pandas.concat([stockFrame, tempStockFrame])
                 if stockFrame.index.max().to_pydatetime().date() < queryEndDate:
@@ -265,6 +269,7 @@ def render_transaction_sales(user, initial =10000):
     return (script, div)
 
 
+# noinspection PyInterpreter
 def render_stock_data(stockName):
     fancyRed = '#F44242'
     fancyBlue = '#1357C4'
@@ -302,7 +307,7 @@ def render_stock_data(stockName):
     volume_plot.xaxis.visible = False
 
     sar_data = SAR(stock_data, acceleration=0.01, maximum=0.3)
-    ema_data = pandas.ewma(stock_data['close'], span=5)
+    # ema_data = pandas.ewma(stock_data['close'], span=5)
     print(sar_data)
     mcl1 = candles.line(sar_data.index, sar_data, line_width=1,
     line_color=fancyRed)
@@ -319,9 +324,9 @@ def render_stock_data(stockName):
     line_color=fancyRed)
     mcl2 = macd_plot.line(macd_data.index, macd_data.macd, line_width=2, line_color=fancyBlue)
 
-    legend = Legend(legends=[
-    ("MACD",   [mcl2]),
-    ("MACD signal", [mcl1]),
+    legend = Legend(items=[
+    LegendItem(label="MACD",   renderers=[mcl2]),
+    LegendItem(label="MACD signal", renderers=[mcl1]),
 ], location=legendLoc)
     macd_plot.add_layout(legend)
 
@@ -341,10 +346,10 @@ def render_stock_data(stockName):
     adl1 = adx_plot.line(adx_data.index, adx_data, line_width=2, line_color="black")
     adl2 = adx_plot.line(plusdm_data.index, plusdm_data, line_width=2, line_color=fancyBlue)
     adl3 = adx_plot.line(plusdm_data.index, minusdm_data, line_width=2, line_color=fancyRed)
-    legend = Legend(legends=[
-    ("ADX",   [adl1]),
-    ("+DM", [adl2]),
-    ("-DM", [adl3]),
+    legend = Legend(items=[
+    LegendItem(label="ADX",   renderers=[adl1]),
+    LegendItem(label="+DM", renderers=[adl2]),
+    LegendItem(label="-DM", renderers=[adl3]),
 ], location=legendLoc)
     adx_plot.add_layout(legend)
 
@@ -358,9 +363,9 @@ def render_stock_data(stockName):
 
     stl1 = stoc_plot.line(stoc_data.index, stoc_data.slowk, line_width=2, line_color='black')
     stl2 = stoc_plot.line(stoc_data.index, stoc_data.slowd, line_width=2, line_color=fancyRed)
-    legend = Legend(legends=[
-    ("%K",   [stl1]),
-    ("%D", [stl2]),
+    legend = Legend(items=[
+    LegendItem(label="%K",   renderers=[stl1]),
+    LegendItem(label="%D", renderers=[stl2]),
 ], location=legendLoc)
     stoc_plot.add_layout(legend)
 
@@ -370,8 +375,8 @@ def render_stock_data(stockName):
     plot_height=smallplotHeight, x_range=candles.x_range)
 
     ccl1 = cci_plot.line(cci_data.index, cci_data, line_width=2, line_color='black')
-    legend = Legend(legends=[
-    ("CCI",   [ccl1]),
+    legend = Legend(items=[
+    LegendItem(label="CCI",   renderers=[ccl1]),
 ], location=legendLoc)
     cci_plot.add_layout(legend)
 
@@ -381,8 +386,8 @@ def render_stock_data(stockName):
     plot_height=smallplotHeight, x_range=candles.x_range)
 
     rsil1 = rsi_plot.line(rsi_data.index, rsi_data, line_width=2, line_color='black')
-    legend = Legend(legends=[
-    ("RSI",   [rsil1]),
+    legend = Legend(items=[
+    LegendItem(label="RSI",   renderers=[rsil1]),
 ], location=legendLoc)
     rsi_plot.add_layout(legend)
 
@@ -407,34 +412,35 @@ def import_stocklist_csv():
     with open(nasdaq_csv_path) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            print(row['Symbol'])
+            print((row['Symbol']))
             try:
                 AllStocks.objects.get_or_create(stockName = row['Symbol'], \
                 name = row['Name'], sector = row['Sector'], industry = row['Industry'], \
                 market = 'NASDAQ')
             except IntegrityError as e:
-                print("stock "+row['Symbol']+" Already Present")
+                print(("stock "+row['Symbol']+" Already Present"))
 
     with open(nyse_csv_path) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            print(row['Symbol'])
+            print((row['Symbol']))
             try:
                 AllStocks.objects.get_or_create(stockName = row['Symbol'], \
                 name = row['Name'], sector = row['Sector'], industry = row['Industry'], \
                 market = 'NYSE')
             except IntegrityError as e:
-                print("stock "+row['Symbol']+" Already Present")
+                print(("stock "+row['Symbol']+" Already Present"))
 
 def import_stocklist_snp():
     snp_csv_path = '/home/teja/snp500.csv'
     with open(snp_csv_path) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            print(row['Symbol'])
+            print((row['Symbol']))
             try:
                 SNP500Model.objects.get_or_create(stockName = row['Symbol'], \
                 name = row['Name'], sector = row['Sector'], industry = 'None', \
                 market = 'NASDAQ')
             except IntegrityError as e:
-                print("stock "+row['Symbol']+" Already Present")
+                print(("stock "+row['Symbol']+" Already Present"))
+

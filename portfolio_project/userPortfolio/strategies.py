@@ -4,7 +4,7 @@ from django.db import IntegrityError
 from django.conf import settings
 import csv, hashlib
 from pandas_datareader import data
-import pandas, urllib2, csv
+import pandas, urllib.request, urllib.error, urllib.parse, csv
 from pytz import timezone
 from dateutil.relativedelta import relativedelta
 from math import pi
@@ -52,7 +52,7 @@ class SimpleStrategy:
             try:
                 stock_data = backend.StockData.Instance().get_historical_stock_data(stockName)
             except Exception as err:
-                print "Error getting data for " + stockName + " " + str(err)
+                print("Error getting data for " + stockName + " " + str(err))
                 continue
             if stock_data.iloc[-1].close >= 50:
                 input.append((date, eachStock.stockName, type, self.trend, self.ema_span, stock_data))
@@ -73,7 +73,8 @@ class SimpleStrategy:
         return selectedStocks[selectedStocks.score > 0]
 
 
-def runPQRules( (date, stockName, type, trend, ema_span, stock_data)):
+def runPQRules(xxx_todo_changeme):
+    (date, stockName, type, trend, ema_span, stock_data) = xxx_todo_changeme
     score = 0
     output = (date, type, stockName, -1)
     # try:

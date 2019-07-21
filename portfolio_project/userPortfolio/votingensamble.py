@@ -2,7 +2,7 @@ import datetime, sys, os, multiprocessing, time
 import threading
 from userPortfolio.models import UserTransactionsModel, UserPortfolioModel, AllStocksModel, SNP500Model
 import csv, hashlib
-import pandas, urllib2, csv, random, datetime, string, subprocess
+import pandas, urllib.request, urllib.error, urllib.parse, csv, random, datetime, string, subprocess
 from pytz import timezone
 from dateutil.relativedelta import relativedelta
 from math import pi
@@ -41,7 +41,7 @@ class EnsambleClassifier:
         stock_name, data = result
         #print stock_name
         if data.shape[0] < self.num_days:
-            print "Error in stock data: "+stock_name
+            print("Error in stock data: "+stock_name)
             return
 
         features = []
@@ -113,7 +113,7 @@ class EnsambleClassifier:
             try:
                 stock_data = backend.StockData.Instance().get_historical_stock_data(stockName)
             except Exception as err:
-                print "Error getting data for " + stockName + " " + str(err)
+                print("Error getting data for " + stockName + " " + str(err))
                 continue
             if len(stock_data) < 1:
                 continue
@@ -121,7 +121,7 @@ class EnsambleClassifier:
                 try:
                     date_ind = stock_data.index.get_loc(pick_date)
                 except:
-                    print("EnsambleClassifier:pick_stock: date not found for stock "+stockName)
+                    print(("EnsambleClassifier:pick_stock: date not found for stock "+stockName))
                     continue
                 stock_data = stock_data[:date_ind]
             if len(stock_data) > start_ind:
@@ -137,7 +137,7 @@ class EnsambleClassifier:
         pool.close()
         pool.join()
         period_train_test_data = []
-        pf_keys = self.period_features.keys()
+        pf_keys = list(self.period_features.keys())
         for eachKey in pf_keys:
             eachFeature = self.period_features[eachKey]
             features = eachFeature['features']
@@ -233,7 +233,7 @@ class EnsambleClassifier:
                 try:
                     stock_data = backend.StockData.Instance().get_historical_stock_data(stockName)
                 except Exception as err:
-                    print "Error getting data for " + stockName + " " + str(err)
+                    print("Error getting data for " + stockName + " " + str(err))
                     continue
                 if len(stock_data) < 1:
                     continue
@@ -250,10 +250,10 @@ class EnsambleClassifier:
             pool.join()
 
             period_train_test_data = []
-            pf_keys = self.period_features.keys()
+            pf_keys = list(self.period_features.keys())
             for eachKey in pf_keys:
                 eachFeature = self.period_features[eachKey]
-                fkeys = eachFeature.keys()
+                fkeys = list(eachFeature.keys())
                 if len(fkeys) < 2:
                     print("Error only one feature found")
                     continue
@@ -344,7 +344,8 @@ class EnsambleClassifier:
 
 
 
-def get_feature_label_for_stocks((stock_name, data, num_days, look_ahead, offset, blind)):
+def get_feature_label_for_stocks(xxx_todo_changeme):
+    (stock_name, data, num_days, look_ahead, offset, blind) = xxx_todo_changeme
     start_time = time.time()
     # offset = 40
     slice_len = num_days+look_ahead+offset
@@ -494,7 +495,8 @@ def get_label_positive(data, look_ahead):
     return labels
 
 
-def run_libSVMGPU((train, train_labels, test, test_labels, C, gamma, epsilon, stockName)):
+def run_libSVMGPU(xxx_todo_changeme1):
+    (train, train_labels, test, test_labels, C, gamma, epsilon, stockName) = xxx_todo_changeme1
     ram_disk = "/tmp/port_ramdisk/"
     suffix = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(10))
     filename = "svm_train_input"+suffix
@@ -522,7 +524,7 @@ def run_libSVMGPU((train, train_labels, test, test_labels, C, gamma, epsilon, st
         print(stderrdata)
     if retcode > 0:
         os.remove(filepath)
-        print("Error "+str(stderrdata))
+        print(("Error "+str(stderrdata)))
         return(-1)
 
     try:
@@ -533,7 +535,7 @@ def run_libSVMGPU((train, train_labels, test, test_labels, C, gamma, epsilon, st
         os.remove(filepath)
         os.remove(output_filepath)
     except Exception as e:
-        print(str(e))
+        print((str(e)))
         return(-1)
 
     positive_accuracy = 0
