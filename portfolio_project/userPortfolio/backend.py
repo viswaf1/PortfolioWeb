@@ -180,13 +180,15 @@ def get_historical_stock_data(stockName, offline = True):
     stockFileDir = settings.BASE_DIR+'/stock_data/'
     stockFilePath = stockFileDir+stockFile
 
+    queryStartDate = '1/1/1990'
+
     if not offline:
         currentTimeUtc = datetime.datetime.now(timezone('UTC'))
         nycTime = currentTimeUtc.astimezone(timezone('US/Eastern'))
         nycCloseTime = nycTime.replace(hour=16, minute=0, second=0, microsecond=0)
         nycCloseTimeUtc = nycCloseTime.astimezone(timezone('UTC'))
 
-        queryStartDate = '1/1/1990'
+
 
         if(currentTimeUtc > nycCloseTimeUtc):
             queryEndDate = nycTime.date()
@@ -217,7 +219,7 @@ def get_historical_stock_data(stockName, offline = True):
             stockFrame = web.DataReader(stockName, 'yahoo', queryStartDate, queryEndDateStr)
             stockFrame.columns = list(map(str.lower, stockFrame.columns))
 
-            append_today_quote(stockFrame, queryEndDate, stockName)
+            # append_today_quote(stockFrame, queryEndDate, stockName)
 
             stockFrame.to_csv(stockFilePath, sep=',')
             # except:
@@ -225,26 +227,33 @@ def get_historical_stock_data(stockName, offline = True):
 
     else:
         stockFrame = pandas.read_csv(stockFilePath, delimiter = ',', index_col=0, parse_dates=True)
-        temp_date_time = datetime.datetime.combine(stockFrame.index.max().to_pydatetime().date(), datetime.time.min)
-        frameEndDate = (temp_date_time + datetime.timedelta(days=1)).date()
-        #frameEndDate = stockFrame.index.max().to_pydatetime().date()
-        currentDate = datetime.date.today()
-        if(frameEndDate < queryEndDate) and not offline:
-            print(frameEndDate)
-            print(queryEndDate)
-            print("Not up to date.... updating")
-            #try:
-            if 1:
-                tempStockFrame = web.DataReader(stockName, 'yahoo', frameEndDate.strftime("%m/%d/%Y"))
-                tempStockFrame.columns = list(map(str.lower, tempStockFrame.columns))
-                if not frameEndDate < tempStockFrame.index.max().to_pydatetime().date():
-                    stockFrame = pandas.concat([stockFrame, tempStockFrame])
-                if stockFrame.index.max().to_pydatetime().date() < queryEndDate:
-                    stockFrame = append_today_quote(stockFrame, queryEndDate, stockName)
-                stockFrame.to_csv(stockFilePath, sep=',')
-            #except:
-            #    print('get_historical_stock_data: 231')
-            #    stockFrame = pandas.DataFrame()
+    #     temp_date_time = datetime.datetime.combine(stockFrame.index.max().to_pydatetime().date(), datetime.time.min)
+    #     frameEndDate = (temp_date_time + datetime.timedelta(days=1)).date()
+    #     #frameEndDate = stockFrame.index.max().to_pydatetime().date()
+    #     currentDate = datetime.date.today()
+    #     if(frameEndDate < queryEndDate) and not offline:
+    #         print(frameEndDate)
+    #         print(queryEndDate)
+    #         print("Not up to date.... updating")
+    #         #try:
+    #         if 1:
+    #             tempStockFrame = web.DataReader(stockName, 'yahoo', queryStartDate, queryEndDateStr)
+    #             tempStockFrame.columns = list(map(str.lower, tempStockFrame.columns))
+    #             if not frameEndDate < tempStockFrame.index.max().to_pydatetime().date():
+    #                 stockFrame = pandas.concat([stockFrame, tempStockFrame])
+    #             if stockFrame.index.max().to_pydatetime().date() < queryEndDate:
+    #                 stockFrame = append_today_quote(stockFrame, queryEndDate, stockName)
+    #             stockFrame.to_csv(stockFilePath, sep=',')
+    #         #except:
+    #         #    print('get_historical_stock_data: 231')
+    #         #    stockFrame = pandas.DataFrame()
+    # else:
+    #     stockFrame = web.DataReader(stockName, 'yahoo', queryStartDate, queryEndDateStr)
+    #     stockFrame.columns = list(map(str.lower, stockFrame.columns))
+    #
+    #     # append_today_quote(stockFrame, queryEndDate, stockName)
+    #
+    #     stockFrame.to_csv(stockFilePath, sep=',')
 
     return stockFrame
 
@@ -414,22 +423,29 @@ def import_stocklist_csv():
         for row in reader:
             print((row['Symbol']))
             try:
-                AllStocks.objects.get_or_create(stockName = row['Symbol'], \
-                name = row['Name'], sector = row['Sector'], industry = row['Industry'], \
-                market = 'NASDAQ')
+                # AllStocksModel.objects.get_or_create(stockName = row['Symbol'], \
+                # name = row['Name'], sector = row['Sector'], industry = row['Industry'], \
+                # market = 'NASDAQ')
+                AllStocksModel.objects.get_or_create(stockName=row['Symbol'], \
+                                                     name=row['Name'],  \
+                                                     market='NASDAQ')
             except IntegrityError as e:
                 print(("stock "+row['Symbol']+" Already Present"))
 
-    with open(nyse_csv_path) as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            print((row['Symbol']))
-            try:
-                AllStocks.objects.get_or_create(stockName = row['Symbol'], \
-                name = row['Name'], sector = row['Sector'], industry = row['Industry'], \
-                market = 'NYSE')
-            except IntegrityError as e:
-                print(("stock "+row['Symbol']+" Already Present"))
+    # with open(nyse_csv_path) as csvfile:
+    #     reader = csv.DictReader(csvfile)
+    #     for row in reader:
+    #         print((row['Symbol']))
+    #         try:
+    #             # AllStocksModel.objects.get_or_create(stockName = row['Symbol'], \
+    #             # name = row['Name'], sector = row['Sector'], industry = row['Industry'], \
+    #             # market = 'NYSE')
+    #             AllStocksModel.objects.get_or_create(stockName = row['Symbol'], \
+    #             name = row['Name'],\
+    #             market = 'NYSE')
+    #
+    #         except IntegrityError as e:
+    #             print(("stock "+row['Symbol']+" Already Present"))
 
 def import_stocklist_snp():
     snp_csv_path = '/home/teja/snp500.csv'

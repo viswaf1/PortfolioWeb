@@ -11,15 +11,29 @@
 
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.js"></script>
-<script type="text/javascript">
-  $(document).ready(function() {
-    $.ajax({
-      type: "GET",
-      url: "/userPortfolio/stock_plot/?stock=GOOGL",
-        $("#stock-plot").html(data);
-      }
+<script language="javascript" type="text/javascript">
+
+var modelState = "";
+var newModelState = "";
+function loadProgress () {
+  $.get('model_state/?ModelId={{modelId}}', function (data) {
+          window.newModelState = data;
+      });
+
+  if(window.newModelState != window.modelState)
+  {
+    $('#model-progress').load('model_progress/?ModelId={{modelId}}',function () {
     });
-  });
+    window.modelState = window.newModelState;
+  }
+};
+
+$('document').ready(function(){window.loadProgress();}); // This will run on page load
+setInterval(function(){
+    loadProgress() // this will run after every 5 seconds
+}, 10000);
+
+
 </script>
 {{ div | safe }}
 {{ script | safe }}
@@ -63,8 +77,8 @@
 
     {% autoescape off %}{{LoadingDiv}}{% endautoescape %}
 
-  <!-- </div>
-  <div id="stock-plot" class="content"><div> -->
+  </div>
+  <div id="model-progress" class="content"><div>
 
 
 {% endblock %}

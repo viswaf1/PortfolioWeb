@@ -112,7 +112,8 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"), )
 MODELS_DIR = os.path.join(BASE_DIR, 'ModelData')
 
 MODELS_STATE_FILE = os.path.join(MODELS_DIR, 'ModelRunState.txt')
-
+FEATURE_STAT_FILENAME = "FeatureStats.txt"
+FEATURE_VALIDATION_STAT_FILENAME = "FeatureValidationStats.txt"
 # CELERY_BROKER_URL = 'amqp://localhost'
 # CELERY STUFF
 BROKER_URL = 'redis://localhost:6379'
@@ -120,5 +121,6 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+
 
 DATETIMESTRFORMAT = "%Y-%m-%d %H:%M:%S"

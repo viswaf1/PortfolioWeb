@@ -1,0 +1,24 @@
+<div class="content">
+    {% if builderRunning %}
+    {% if post_error %}
+    <p style="color:red;">Error: {{error_message}}</p>
+    {% elif modelId >= 0 %}
+    <h2> Model Progress For Model {{modelId}} </h2>
+    {% endif %}
+    <h3> Builder State : {{state}}</h3>
+
+     <div style="float: left;">
+    {% if hasFeatureStats %}
+    <div id="FeatureStats">
+        <h3>Feature Statistics</h3>
+        {% autoescape off %}{{ featureStatStr }}{% endautoescape %}
+        {{ featureStatDiv | safe }}
+        {{ featureStatScript | safe }}
+    </div>
+    {% endif %}
+
+
+    </div>
+{% endif %}
+
+</div>

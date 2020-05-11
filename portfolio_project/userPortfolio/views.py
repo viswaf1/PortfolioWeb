@@ -289,3 +289,11 @@ def render_transaction_table(stockName, user):
 def build_model(request):
     return  buildModelBackend.renderModelBuilder(request)
 
+@login_required
+def model_build_progress(request):
+    return  buildModelBackend.RenderModelProgress(request)
+
+@login_required
+def model_build_state(request):
+    return buildModelBackend.GetModelState(request)
+
